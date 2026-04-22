@@ -1,3 +1,3 @@
 # Android-Linux-Desktop
 Android Linux Desktop
-curl -sL https://raw.githubusercontent.com/jarvesusaram99/termux-hacklab/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/luigifaria88/Android-Linux-Desktop/blob/main/android_linuxdesktop.sh | bash
