@@ -1,59 +1,56 @@
-# Android-Linux-Desktop
+# DexLinux - Mobile Linux Desktop
 
-**Android-Linux-Desktop** is a comprehensive script designed to transform your Android device into a fully functional Linux desktop environment. It automates the setup of **Termux**, **Proot-Distro**, and various desktop environments (GNOME, XFCE, KDE) with a user-friendly menu-driven interface.
+**DexLinux** is a comprehensive script designed to transform your Android device into a fully functional Linux desktop environment using Termux. It automates the setup of Termux-X11, XFCE4 desktop, GPU acceleration, and optionally PRoot subsystems.
 
 ## Features
 
-- **One-Click Installation**: Simplifies the setup of Termux and Proot-Distro.
-- **Multiple Desktop Environments**:
-  - **GNOME**: A modern and feature-rich desktop environment.
-  - **XFCE**: A lightweight and fast desktop environment.
-  - **KDE (Plasma)**: A powerful and customizable desktop environment.
-- **Easy Switching**: Easily switch between different desktop environments.
-- **Automatic Configuration**: Automatically configures display settings and starts the desktop environment.
-- **Convenience Scripts**: Includes shortcuts to launch desktop environments, install packages, update the system, and manage the environment.
+- **Automated Setup**: One-script installation for a complete desktop environment.
+- **XFCE4 Desktop**: Lightweight and fast, pre-configured with the premium Fluent theme and Papirus icons.
+- **GPU Acceleration**: Auto-setup for Turnip/Zink drivers to provide hardware acceleration.
+- **Audio Support**: Integrated PulseAudio for sound.
+- **Android Integration**: Automatic symlinks to your Android storage (Downloads, Photos, Docs).
+- **PRoot Subsystems**: Optional installation of Ubuntu 24.04, Debian, Arch Linux, or Kali Linux.
+- **Windows Apps Support**: Optional Wine (Hangover/Box64) integration.
+- **Utility Scripts**: Includes shortcuts to manage resolution, network tools, and desktop sessions.
 
 ## Installation
 
-To install and run the script, simply execute the following command in your terminal (e.g., through an existing Termux session or a similar environment):
+To install and run the script, execute the following command in Termux:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/luigifaria88/Android-Linux-Desktop/blob/main/DexLinux.sh | bash
+curl -sL https://raw.githubusercontent.com/luigifaria88/Android-Linux-Desktop/main/DexLinux.sh | bash
 ```
 
-The script will automatically:
+The script will present you with an installation menu:
 
-1. Install necessary packages.
-2. Install Proot-Distro.
-3. Set up your chosen Linux distribution and desktop environment.
-4. Provide you with a menu to manage your setup.
+1. **Full Installation**: Installs all tools, XFCE desktop, and prompts for a PRoot subsystem.
+2. **Minimal Installation**: Installs the core XFCE desktop without additional network tools or Wine.
+3. **Custom Installation**: Allows you to choose exactly which components to install.
 
 ## Usage
 
-After running the installation script, you will be presented with a menu. You can:
+After installation, you can use the generated shortcuts on your desktop or the following commands in Termux:
 
-- **Install/Reinstall** a desktop environment (GNOME, XFCE, KDE).
-- **Uninstall** the desktop environment.
-- **Change/Switch** to a different desktop environment.
-- **Manage Packages**: Install or update software within your Linux environment.
-- **Launch** your desktop environment.
-- **Exit** the script.
+- **Start Desktop**: `bash ~/start-dexlinux.sh`
+- **Stop Desktop**: `bash ~/stop-dexlinux.sh`
+- **Change Resolution**: `bash ~/dex-res.sh`
+- **Quick Tools**: `bash ~/dex-tools.sh` (Access network tools and system status)
 
-### Example: Installing GNOME
+### Launching the Desktop
 
-1. Run the installation command above.
-2. Select the "Install/Reinstall GNOME" option from the menu.
-3. Follow the prompts.
-4. Once installed, select "Launch GNOME Desktop" to start your desktop session.
+1. Open the **Termux:X11** app.
+2. Go back to the **Termux** terminal app.
+3. Run `bash ~/start-dexlinux.sh`.
+4. Switch to the **Termux:X11** app to see your desktop.
 
 ## Requirements
 
-- An Android device capable of running Termux (or similar terminal emulator).
-- Sufficient storage space for the desktop environment (GNOME requires the most space).
+- Android device with **Termux** installed.
+- Android 12+ users might need to disable the Phantom Process Killer (instructions provided during script pre-flight check).
+- Sufficient storage space (depends on the chosen PRoot subsystem and tools).
 - Internet connection for downloading packages.
 
 ## Troubleshooting
 
-- **Installation fails**: Ensure you have a stable internet connection and enough storage space.
-- **Desktop won't start**: Make sure you have completed the installation and configuration steps correctly. You may need to restart Termux or the script.
-- **Missing packages**: You can install additional software using the "Package Manager" option in the main menu.
+- **Desktop won't start**: Ensure the Termux:X11 app is running before executing the start script. If it still fails, check the `~/x11.log` file for errors.
+- **No hardware acceleration**: Depends on device compatibility (Adreno GPUs usually have native Turnip support; others might fallback to software rendering).
