@@ -43,39 +43,28 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 # ============== UI HELPER FUNCTIONS ==============
-# Draw a premium box with title
+# Draw section header
 draw_box() {
     local title="$1"
-    local box_width=${BOX_WIDTH:-45}
-    local title_len=${#title}
-    local total_dashes=$(( box_width - title_len - 4 ))
-    local dash_left=$(( total_dashes / 2 ))
-    local dash_right=$(( total_dashes - dash_left ))
-    
-    echo -e "${CYAN}┌$(printf '─%.0s' $(seq 1 $dash_left)) ${WHITE}${BOLD}${title}${NC}${CYAN} $(printf '─%.0s' $(seq 1 $dash_right))┐${NC}"
+    echo -e "${CYAN}▶ ${WHITE}${BOLD}${title}${NC}"
 }
 
+# Draw separator
 draw_bottom() {
     local box_width=${BOX_WIDTH:-45}
-    echo -e "${CYAN}└$(printf '─%.0s' $(seq 1 $((box_width - 2))))┘${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 ${box_width}))${NC}"
 }
 
+# Draw indented content
 draw_line() {
     local content="$1"
-    local box_width=${BOX_WIDTH:-45}
-    # Strip ANSI codes to calculate real length
-    local clean=$(echo -e "$content" | sed 's/\x1b\[[0-9;]*[mK]//g')
-    local len=${#clean}
-    local pad=$(( box_width - len - 4 ))
-    [[ $pad -lt 0 ]] && pad=0
-    
-    printf "${CYAN}│${NC} %b%*s ${CYAN}│${NC}\n" "$content" "$pad" ""
+    echo -e "  ${content}"
 }
 
 print_status() {
     local icon="$1"
     local msg="$2"
-    draw_line "${icon}  ${msg}"
+    echo -e "  ${icon}  ${msg}"
 }
 
 # Update overall progress
@@ -115,8 +104,8 @@ spinner() {
         i=$(( (i+1) % spin_len ))
         local char="${spin:$i:1}"
         
-        # Use clear line (\e[2K) and don't draw right border during animation to prevent wrap spam
-        printf "\r\e[2K${CYAN}│${NC} ${YELLOW}${char}${NC}  ${WHITE}${message}${NC}"
+        # Clear line and print spinner
+        printf "\r\e[2K  ${CYAN}${char}${NC}  ${WHITE}${message}${NC}"
         sleep 0.1
     done
     
@@ -127,9 +116,9 @@ spinner() {
     printf "\e[?25h\r\e[2K"
     
     if [ $res -eq 0 ]; then
-        draw_line " ${GREEN}✓${NC} ${WHITE}${message}${NC}"
+        echo -e "  ${GREEN}✓${NC} ${WHITE}${message}${NC}"
     else
-        draw_line " ${RED}✗${NC} ${WHITE}${message}${NC} ${RED}(failed)${NC}"
+        echo -e "  ${RED}✗${NC} ${WHITE}${message}${NC} ${RED}(failed)${NC}"
     fi
     
     return $res
@@ -145,28 +134,24 @@ install_pkg() {
 # ============== BANNER ==============
 show_banner() {
     clear
-    local box_width=${BOX_WIDTH:-45}
     local title="DexLinux v1.0"
-    local title_len=${#title}
-    local total_dashes=$(( box_width - title_len - 4 ))
-    local dash_left=$(( total_dashes / 2 ))
-    local dash_right=$(( total_dashes - dash_left ))
+    local sub1="Mobile Linux Desktop"
+    local sub2="Design by Luigi"
     
-    echo -e "${CYAN}╔$(printf '═%.0s' $(seq 1 $dash_left)) ${WHITE}${BOLD}${title}${NC}${CYAN} $(printf '═%.0s' $(seq 1 $dash_right))╗"
-    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
+    local pad_title=$(( (BOX_WIDTH - ${#title}) / 2 ))
+    [[ $pad_title -lt 0 ]] && pad_title=0
+    local pad_sub1=$(( (BOX_WIDTH - ${#sub1}) / 2 ))
+    [[ $pad_sub1 -lt 0 ]] && pad_sub1=0
+    local pad_sub2=$(( (BOX_WIDTH - ${#sub2}) / 2 ))
+    [[ $pad_sub2 -lt 0 ]] && pad_sub2=0
     
-    local c1="Mobile Linux Desktop"
-    local pad1=$(( box_width - ${#c1} - 4 ))
-    printf "${CYAN}║ %*s%b%*s ${CYAN}║\n" "$((pad1/2))" "" "${WHITE}${c1}" "$((pad1 - pad1/2))" ""
-    
-    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
-    
-    local c2="Design by Luigi"
-    local pad2=$(( box_width - ${#c2} - 4 ))
-    printf "${CYAN}║ %*s%b%*s ${CYAN}║\n" "$((pad2/2))" "" "${WHITE}${c2}" "$((pad2 - pad2/2))" ""
-    
-    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
-    echo -e "${CYAN}╚$(printf '═%.0s' $(seq 1 $((box_width - 2))))╝${NC}"
+    echo ""
+    echo -e "${CYAN}$(printf '━%.0s' $(seq 1 ${BOX_WIDTH}))${NC}"
+    printf "%*s%b\n" "$pad_title" "" "${BOLD}${WHITE}${title}${NC}"
+    printf "%*s%b\n" "$pad_sub1" "" "${CYAN}${sub1}${NC}"
+    printf "%*s%b\n" "$pad_sub2" "" "${GRAY}${sub2}${NC}"
+    echo -e "${CYAN}$(printf '━%.0s' $(seq 1 ${BOX_WIDTH}))${NC}"
+    echo ""
 }
 # ============== DISTRO SELECTION ==============
 select_distro() {
