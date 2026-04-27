@@ -136,7 +136,7 @@ show_banner() {
     clear
     local title="DexLinux v1.0"
     local sub1="Mobile Linux Desktop"
-    local sub2="Design by Luigi"
+    local sub2="Design by LuigiFaria88"
     
     local pad_title=$(( (BOX_WIDTH - ${#title}) / 2 ))
     [[ $pad_title -lt 0 ]] && pad_title=0
