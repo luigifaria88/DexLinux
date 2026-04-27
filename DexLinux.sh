@@ -578,6 +578,11 @@ GPUEOF
         echo 'source ~/.config/dexlinux-gpu.sh 2>/dev/null' >> ~/.bashrc
     fi
     
+    # Customize Termux Prompt to hide u0_aXXX
+    if ! grep -q "PS1=" ~/.bashrc 2>/dev/null; then
+        echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
+    fi
+    
     # Main Launcher
     cat > ~/start-dexlinux.sh << 'LAUNCHEREOF'
 #!/data/data/com.termux/files/usr/bin/bash
