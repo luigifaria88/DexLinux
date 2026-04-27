@@ -239,7 +239,7 @@ check_environment() {
     if [ "$ANDROID_MAJOR" -ge 12 ]; then
         print_status "⚠️" "Android 12+ detected."
         draw_line "    ${GRAY}Disable Phantom Process Killer:${NC}"
-        draw_line "    ${CYAN}device_config put activity_manager \\${NC}"
+        draw_line "    ${CYAN}device_config put activity_manager ${NC}\\"
         draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
     else
         print_status "✅" "Android ${ANDROID_VERSION:-Unknown} compatibility: OK"
