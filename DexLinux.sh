@@ -170,7 +170,11 @@ select_distro() {
         4) PROOT_DISTRO="kali" ;;
         *) PROOT_DISTRO="ubuntu" ;;
     esac
-    print_status "✅" "Selected: ${WHITE}${BOLD}${PROOT_DISTRO}${NC}"
+    echo ""
+    read -p "  Enter a username for the Distro (default: dex): " PROOT_USER < /dev/tty
+    [[ -z "$PROOT_USER" ]] && PROOT_USER="dex"
+    
+    print_status "✅" "Selected: ${WHITE}${BOLD}${PROOT_DISTRO}${NC} (User: ${PROOT_USER})"
     echo ""
 }
 # ============== SELECTION MENU ==============
@@ -461,6 +465,11 @@ step_proot() {
     if ! proot-distro login ${PROOT_DISTRO} -- bash -c "grep -q 'DEXLINUX_CONFIG' /etc/profile" > /dev/null 2>&1; then
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
             apt update && apt install -y sudo wget curl git mesa-utils > /dev/null 2>&1
+            if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
+                useradd -m -s /bin/bash ${PROOT_USER}
+                echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
+                chmod 0440 /etc/sudoers.d/${PROOT_USER}
+            fi
             cat >> /etc/profile << 'EOF'
 # DEXLINUX_CONFIG_START
 export DISPLAY=:0
@@ -479,7 +488,7 @@ EOF
 [Desktop Entry]
 Name=${D_NAME} Shell
 Comment=Open ${D_NAME} environment with GPU Support
-Exec=xfce4-terminal -e "bash -c 'export DISPLAY=:0; source ~/.config/dexlinux-gpu.sh; proot-distro login ${PROOT_DISTRO}'"
+Exec=xfce4-terminal -e "bash -c 'export DISPLAY=:0; source ~/.config/dexlinux-gpu.sh; proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}'"
 Icon=utilities-terminal
 Type=Application
 Categories=System;
@@ -511,8 +520,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Let's finish your configuration:"
 echo ""
-read -p "Enter a name for your Linux user: " username
-echo "Set a password for your desktop session:"
+echo "Set a password for your Termux background session (optional):"
 passwd
 echo ""
 echo "Optimizing display scaling..."
