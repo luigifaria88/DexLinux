@@ -430,6 +430,17 @@ EOF
   </property>
 </channel>
 EOF
+
+    cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-desktop" version="1.0">
+  <property name="desktop-icons" type="empty">
+    <property name="file-icons" type="empty">
+      <property name="show-filesystem" type="bool" value="false"/>
+    </property>
+  </property>
+</channel>
+EOF
     draw_bottom
 }
 # ============== STEP 10: INSTALL BROWSERS & APPS ==============
