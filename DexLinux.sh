@@ -394,7 +394,8 @@ step_themes() {
     
     if git clone --depth 1 https://github.com/vinceliuice/Fluent-gtk-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
-        ./install.sh -d ~/.themes -n Fluent -t dark > /dev/null 2>&1
+        find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
+        bash install.sh -d ~/.themes -n Fluent -t dark > /dev/null 2>&1
         draw_line "${GREEN}✓${NC} Fluent Theme installed"
         cd - > /dev/null
     else
