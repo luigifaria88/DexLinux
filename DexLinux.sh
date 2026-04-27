@@ -22,9 +22,13 @@ PROOT_DISTRO="ubuntu"
 HAS_ROOT=false
 
 # Auto-detect terminal width for UI
-BOX_WIDTH=$(tput cols 2>/dev/null || echo 45)
-[[ -z "$BOX_WIDTH" || "$BOX_WIDTH" -lt 40 ]] && BOX_WIDTH=40
-[[ "$BOX_WIDTH" -gt 60 ]] && BOX_WIDTH=60
+TERM_COLS=$(tput cols 2>/dev/null || echo 45)
+# Ensure a minimum width to prevent UI breakage
+[[ -z "$TERM_COLS" || "$TERM_COLS" -lt 40 ]] && TERM_COLS=40
+# Apply a slight margin
+BOX_WIDTH=$((TERM_COLS - 2))
+# Cap at 80 characters for ultra-wide screens to keep it readable
+[[ "$BOX_WIDTH" -gt 80 ]] && BOX_WIDTH=80
 
 # ============== COLORS (Fluent Palette) ==============
 RED='\033[38;2;255;95;95m'
@@ -79,18 +83,21 @@ update_progress() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
     PERCENT=$((CURRENT_STEP * 100 / TOTAL_STEPS))
     
-    # Create progress bar (20 characters)
-    FILLED=$((PERCENT * 2 / 10))
-    EMPTY=$((20 - FILLED))
+    local box_width=${BOX_WIDTH:-45}
+    local bar_width=$(( box_width - 28 ))
+    [[ $bar_width -lt 10 ]] && bar_width=10
     
-    BAR="${GREEN}"
-    for ((i=0; i<FILLED; i++)); do BAR+="━"; done
-    BAR+="${GRAY}"
-    for ((i=0; i<EMPTY; i++)); do BAR+="─"; done
-    BAR+="${NC}"
+    local filled=$(( PERCENT * bar_width / 100 ))
+    local empty=$(( bar_width - filled ))
+    
+    local bar="${GREEN}"
+    for ((i=0; i<filled; i++)); do bar+="━"; done
+    bar+="${GRAY}"
+    for ((i=0; i<empty; i++)); do bar+="─"; done
+    bar+="${NC}"
     
     echo ""
-    echo -e "  ${WHITE}📊 PROGRESS: ${BOLD}${PERCENT}%${NC} [${BAR}] ${GRAY}${CURRENT_STEP}/${TOTAL_STEPS}${NC}"
+    printf "  ${WHITE}📊 PROGRESS: ${BOLD}%3d%%${NC} [%b] ${GRAY}%2d/%2d${NC}\n" "$PERCENT" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS"
     echo ""
 }
 # Spinner animation for running tasks
@@ -138,18 +145,28 @@ install_pkg() {
 # ============== BANNER ==============
 show_banner() {
     clear
-    echo -e "${CYAN}"
-    cat << 'BANNER'
-    ╔══════════════════════════════════════╗
-    ║                                      ║
-    ║             DexLinux v1.0            ║
-    ║         Mobile Linux Desktop         ║
-    ║                                      ║
-    ║           Design by Luigi            ║
-    ║                                      ║
-    ╚══════════════════════════════════════╝
-BANNER
-    echo -e "${NC}"
+    local box_width=${BOX_WIDTH:-45}
+    local title="DexLinux v1.0"
+    local title_len=${#title}
+    local total_dashes=$(( box_width - title_len - 4 ))
+    local dash_left=$(( total_dashes / 2 ))
+    local dash_right=$(( total_dashes - dash_left ))
+    
+    echo -e "${CYAN}╔$(printf '═%.0s' $(seq 1 $dash_left)) ${WHITE}${BOLD}${title}${NC}${CYAN} $(printf '═%.0s' $(seq 1 $dash_right))╗"
+    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
+    
+    local c1="Mobile Linux Desktop"
+    local pad1=$(( box_width - ${#c1} - 4 ))
+    printf "${CYAN}║ %*s%b%*s ${CYAN}║\n" "$((pad1/2))" "" "${WHITE}${c1}" "$((pad1 - pad1/2))" ""
+    
+    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
+    
+    local c2="Design by Luigi"
+    local pad2=$(( box_width - ${#c2} - 4 ))
+    printf "${CYAN}║ %*s%b%*s ${CYAN}║\n" "$((pad2/2))" "" "${WHITE}${c2}" "$((pad2 - pad2/2))" ""
+    
+    printf "${CYAN}║ %*s ${CYAN}║\n" $(( box_width - 4 )) ""
+    echo -e "${CYAN}╚$(printf '═%.0s' $(seq 1 $((box_width - 2))))╝${NC}"
 }
 # ============== DISTRO SELECTION ==============
 select_distro() {
