@@ -387,16 +387,16 @@ step_themes() {
     install_pkg "papirus-icon-theme" "Papirus Icons"
     mkdir -p ~/.themes ~/.icons
     
-    draw_line "${YELLOW}⏳${NC} Cloning Fluent Theme..."
-    T_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/fluent-theme"
+    draw_line "${YELLOW}⏳${NC} Cloning Orchis Theme..."
+    T_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/orchis-theme"
     rm -rf "$T_DIR"
     mkdir -p "$T_DIR"
     
-    if git clone --depth 1 https://github.com/vinceliuice/Fluent-gtk-theme.git "$T_DIR" > /dev/null 2>&1; then
+    if git clone --depth 1 https://github.com/vinceliuice/Orchis-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
         find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-        bash install.sh -d ~/.themes -n Fluent -t dark > /dev/null 2>&1
-        draw_line "${GREEN}✓${NC} Fluent Theme installed"
+        bash install.sh -d ~/.themes -c dark > /dev/null 2>&1
+        draw_line "${GREEN}✓${NC} Orchis Theme installed"
         cd - > /dev/null
     else
         draw_line "${RED}✗${NC} Failed to clone theme repository"
@@ -411,7 +411,7 @@ step_themes() {
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="Fluent-dark"/>
+    <property name="ThemeName" type="string" value="Orchis-Dark"/>
     <property name="IconThemeName" type="string" value="Papirus-Dark"/>
     <property name="CursorThemeName" type="string" value="Adwaita"/>
   </property>
@@ -422,7 +422,7 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
-    <property name="theme" type="string" value="Fluent-dark"/>
+    <property name="theme" type="string" value="Orchis-Dark"/>
   </property>
 </channel>
 EOF
