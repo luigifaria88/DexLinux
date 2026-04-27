@@ -232,17 +232,17 @@ check_environment() {
     draw_box "System Pre-flight"
     
     # Check Android Version
-    ANDROID_VERSION=$(getprop ro.build.version.release)
-    if [ "${ANDROID_VERSION%%.*}" -ge 12 ]; then
+    ANDROID_VERSION=$(getprop ro.build.version.release 2>/dev/null)
+    ANDROID_MAJOR="${ANDROID_VERSION%%.*}"
+    [[ -z "$ANDROID_MAJOR" ]] && ANDROID_MAJOR=0
+
+    if [ "$ANDROID_MAJOR" -ge 12 ]; then
         print_status "⚠️" "Android 12+ detected."
-        print_status " " "Disable Phantom Process Killer."
-        print_status " " "Run:"
-        print_status " " "${CYAN}device_config put \\${NC}"
-        print_status " " "${CYAN}activity_manager \\${NC}"
-        print_status " " "${CYAN}max_phantom_processes \\${NC}"
-        print_status " " "${CYAN}2147483647${NC}"
+        draw_line "   ${GRAY}Disable Phantom Process Killer:${NC}"
+        draw_line "   ${CYAN}device_config put activity_manager \\${NC}"
+        draw_line "   ${CYAN}max_phantom_processes 2147483647${NC}"
     else
-        print_status "✅" "Android ${ANDROID_VERSION} compatibility: OK"
+        print_status "✅" "Android ${ANDROID_VERSION:-Unknown} compatibility: OK"
     fi
     
     # Check Architecture
