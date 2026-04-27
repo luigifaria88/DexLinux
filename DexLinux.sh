@@ -163,7 +163,7 @@ select_distro() {
     draw_line "${WHITE}4)${NC} Kali Linux ${GRAY}(Security Tools)${NC}"
     draw_bottom
     echo ""
-    read -p "  Select option [1-4]: " d_choice
+    read -p "  Select option [1-4]: " d_choice < /dev/tty
     case $d_choice in
         2) PROOT_DISTRO="debian" ;;
         3) PROOT_DISTRO="archlinux" ;;
@@ -181,7 +181,7 @@ show_menu() {
     draw_line "${CYAN}3)${NC} ${BOLD}Custom Installation${NC} ${GRAY}(Choose manually)${NC}"
     draw_bottom
     echo ""
-    read -p "  Select option [1-3]: " mode_choice
+    read -p "  Select option [1-3]: " mode_choice < /dev/tty
 
     case $mode_choice in
         1)
@@ -196,11 +196,11 @@ show_menu() {
             ;;
         3)
             echo ""
-            read -p "  Install Network Tools? (y/n): " h_choice
+            read -p "  Install Network Tools? (y/n): " h_choice < /dev/tty
             [[ "$h_choice" != "y" ]] && INSTALL_NETWORK=false
-            read -p "  Install Wine (Windows Apps)? (y/n): " w_choice
+            read -p "  Install Wine (Windows Apps)? (y/n): " w_choice < /dev/tty
             [[ "$w_choice" != "y" ]] && INSTALL_WINE=false
-            read -p "  Enable PRoot (Linux Subsystems)? (y/n): " p_choice
+            read -p "  Enable PRoot (Linux Subsystems)? (y/n): " p_choice < /dev/tty
             if [[ "$p_choice" == "y" ]]; then
                 INSTALL_PROOT=true
                 select_distro
@@ -232,15 +232,15 @@ check_environment() {
     draw_box "System Pre-flight"
     
     # Check Android Version
-    ANDROID_VERSION=$(getprop ro.build.version.release 2>/dev/null)
+    ANDROID_VERSION=$(getprop ro.build.version.release 2>/dev/null | tr -d '\r')
     ANDROID_MAJOR="${ANDROID_VERSION%%.*}"
     [[ -z "$ANDROID_MAJOR" ]] && ANDROID_MAJOR=0
 
     if [ "$ANDROID_MAJOR" -ge 12 ]; then
         print_status "⚠️" "Android 12+ detected."
-        draw_line "   ${GRAY}Disable Phantom Process Killer:${NC}"
-        draw_line "   ${CYAN}device_config put activity_manager \\${NC}"
-        draw_line "   ${CYAN}max_phantom_processes 2147483647${NC}"
+        draw_line "    ${GRAY}Disable Phantom Process Killer:${NC}"
+        draw_line "    ${CYAN}device_config put activity_manager \\${NC}"
+        draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
     else
         print_status "✅" "Android ${ANDROID_VERSION:-Unknown} compatibility: OK"
     fi
@@ -259,12 +259,12 @@ check_environment() {
 detect_device() {
     draw_box "Hardware Information"
     
-    DEVICE_MODEL=$(getprop ro.product.model 2>/dev/null || echo "Unknown")
-    DEVICE_BRAND=$(getprop ro.product.brand 2>/dev/null || echo "Unknown")
-    ANDROID_VERSION=$(getprop ro.build.version.release 2>/dev/null || echo "Unknown")
-    CPU_ABI=$(getprop ro.product.cpu.abi 2>/dev/null || echo "arm64-v8a")
+    DEVICE_MODEL=$(getprop ro.product.model 2>/dev/null | tr -d '\r' || echo "Unknown")
+    DEVICE_BRAND=$(getprop ro.product.brand 2>/dev/null | tr -d '\r' || echo "Unknown")
+    ANDROID_VERSION=$(getprop ro.build.version.release 2>/dev/null | tr -d '\r' || echo "Unknown")
+    CPU_ABI=$(getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' || echo "arm64-v8a")
     
-    GPU_VENDOR=$(getprop ro.hardware.egl 2>/dev/null || echo "")
+    GPU_VENDOR=$(getprop ro.hardware.egl 2>/dev/null | tr -d '\r' || echo "")
     
     print_status "📱" "Device: ${WHITE}${DEVICE_BRAND} ${DEVICE_MODEL}${NC}"
     print_status "🤖" "Android: ${WHITE}${ANDROID_VERSION}${NC}"
@@ -367,7 +367,7 @@ step_storage() {
     update_progress
     draw_box "Android Storage Integration"
     
-    draw_line "${YELLOW}⚠${NC} Please allow storage permission in the popup!"
+    draw_line "${YELLOW}⚠${NC} Please allow storage permission!"
     termux-setup-storage
     sleep 2
     
@@ -754,7 +754,7 @@ main() {
     print_status "ℹ️ " "Starting DexLinux v1.1 Deployment"
     echo -e "${GRAY}  Estimated time: 10-20 minutes.${NC}"
     echo ""
-    read -p "  Press Enter to begin..."
+    read -p "  Press Enter to begin..." < /dev/tty
     
     # Run all steps
     detect_device
