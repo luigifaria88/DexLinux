@@ -15,8 +15,8 @@
 # ============== CONFIGURATION ==============
 TOTAL_STEPS=14
 CURRENT_STEP=0
-INSTALL_NETWORK=true
-INSTALL_WINE=true
+INSTALL_EXTRA_APPS="1 3 4 5 6"
+
 INSTALL_PROOT=false
 PROOT_DISTRO="ubuntu"
 HAS_ROOT=false
@@ -177,11 +177,29 @@ select_distro() {
     print_status "✅" "Selected: ${WHITE}${BOLD}${PROOT_DISTRO}${NC} (User: ${PROOT_USER})"
     echo ""
 }
+select_extra_apps() {
+    echo ""
+    draw_box "Extra Applications"
+    draw_line "${WHITE}1)${NC} Firefox Browser"
+    draw_line "${WHITE}2)${NC} Chromium Browser"
+    draw_line "${WHITE}3)${NC} VS Code (Code-OSS)"
+    draw_line "${WHITE}4)${NC} GIMP (Image Editor)"
+    draw_line "${WHITE}5)${NC} VLC Media Player"
+    draw_line "${WHITE}6)${NC} LibreOffice"
+    draw_line "${WHITE}7)${NC} All of the above"
+    draw_line "${WHITE}0)${NC} None"
+    draw_bottom
+    echo ""
+    read -p "  Select options (e.g. 2 4 6, or 7): " app_choice < /dev/tty
+    [[ -z "$app_choice" ]] && app_choice="0"
+    INSTALL_EXTRA_APPS="$app_choice"
+}
+
 # ============== SELECTION MENU ==============
 show_menu() {
     draw_box "Installation Mode"
-    draw_line "${CYAN}1)${NC} ${BOLD}Full Installation${NC} ${GRAY}(All tools + Distro)${NC}"
-    draw_line "${CYAN}2)${NC} ${BOLD}Minimal Installation${NC} ${GRAY}(No Distro, No tools)${NC}"
+    draw_line "${CYAN}1)${NC} ${BOLD}Full Installation${NC} ${GRAY}(All Apps + Distro)${NC}"
+    draw_line "${CYAN}2)${NC} ${BOLD}Minimal Installation${NC} ${GRAY}(Core Desktop Only)${NC}"
     draw_line "${CYAN}3)${NC} ${BOLD}Custom Installation${NC} ${GRAY}(Choose manually)${NC}"
     draw_bottom
     echo ""
@@ -190,20 +208,16 @@ show_menu() {
     case $mode_choice in
         1)
             INSTALL_PROOT=true
-            TOTAL_STEPS=15
+            TOTAL_STEPS=14
             select_distro
             ;;
         2)
-            INSTALL_NETWORK=false
-            INSTALL_WINE=false
+            INSTALL_EXTRA_APPS="0"
             TOTAL_STEPS=12
             ;;
         3)
             echo ""
-            read -p "  Install Network Tools? (y/n): " h_choice < /dev/tty
-            [[ "$h_choice" != "y" ]] && INSTALL_NETWORK=false
-            read -p "  Install Wine (Windows Apps)? (y/n): " w_choice < /dev/tty
-            [[ "$w_choice" != "y" ]] && INSTALL_WINE=false
+            select_extra_apps
             read -p "  Enable PRoot (Linux Subsystems)? (y/n): " p_choice < /dev/tty
             if [[ "$p_choice" == "y" ]]; then
                 INSTALL_PROOT=true
@@ -212,13 +226,12 @@ show_menu() {
             
             # Recalculate steps
             TOTAL_STEPS=12
-            [[ "$INSTALL_NETWORK" == "true" ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
-            [[ "$INSTALL_WINE" == "true" ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
+            [[ "$INSTALL_EXTRA_APPS" != *"0"* ]] && [[ -n "$INSTALL_EXTRA_APPS" ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
             [[ "$INSTALL_PROOT" == "true" ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
             ;;
         *)
             INSTALL_PROOT=true
-            TOTAL_STEPS=15
+            TOTAL_STEPS=14
             ;;
     esac
 }
@@ -447,20 +460,36 @@ EOF
 step_apps() {
     update_progress
     draw_box "Core Applications"
-    install_pkg "firefox" "Firefox Browser"
     install_pkg "git" "Git VSC"
     draw_bottom
 }
-# ============== STEP 8: INSTALL NETWORK TOOLS ==============
-step_network_tools() {
-    update_progress
-    draw_box "Network Analysis Tools"
+# ============== STEP 8: INSTALL EXTRA APPS ==============
+step_extra_apps() {
+    [[ "$INSTALL_EXTRA_APPS" == *"0"* ]] || [[ -z "$INSTALL_EXTRA_APPS" ]] && return
     
-    install_pkg "nmap" "Nmap Scanner"
-    install_pkg "netcat-openbsd" "Netcat"
-    install_pkg "whois" "Whois"
-    install_pkg "dnsutils" "DNS Utils"
-    install_pkg "tracepath" "Tracepath"
+    update_progress
+    draw_box "Extra Applications"
+    
+    [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && INSTALL_EXTRA_APPS="1 2 3 4 5 6"
+    
+    if [[ "$INSTALL_EXTRA_APPS" == *"1"* ]]; then
+        install_pkg "firefox" "Firefox Browser"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"2"* ]]; then
+        install_pkg "chromium" "Chromium Browser"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"3"* ]]; then
+        install_pkg "code-oss" "VS Code"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"4"* ]]; then
+        install_pkg "gimp" "GIMP Editor"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"5"* ]]; then
+        install_pkg "vlc" "VLC Player"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"6"* ]]; then
+        install_pkg "libreoffice" "LibreOffice"
+    fi
     draw_bottom
 }
 # ============== STEP 12: INSTALL PROOT (OPTIONAL) ==============
@@ -546,24 +575,7 @@ EOF
     chmod +x ~/dexlinux-firstrun.sh
 }
 # ============== STEP 10: INSTALL METASPLOIT ==============
-# ============== STEP 11: INSTALL WINE (WINDOWS APPS) ==============
-step_wine() {
-    update_progress
-    draw_box "Wine (Windows Support)"
-    
-    (pkg remove wine-stable -y > /dev/null 2>&1) &
-    spinner $! "Cleaning old versions"
-    
-    install_pkg "hangover-wine" "Wine (Hangover)"
-    install_pkg "hangover-wowbox64" "Box64 Wrapper"
-    
-    ln -sf /data/data/com.termux/files/usr/opt/hangover-wine/bin/wine /data/data/com.termux/files/usr/bin/wine
-    ln -sf /data/data/com.termux/files/usr/opt/hangover-wine/bin/winecfg /data/data/com.termux/files/usr/bin/winecfg
-    
-    wine reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v FontSmoothing /t REG_SZ /d 2 /f > /dev/null 2>&1
-    draw_line "${GREEN}✓${NC} UI Optimized"
-    draw_bottom
-}
+
 # ============== STEP 12: CREATE LAUNCHER SCRIPTS ==============
 step_launchers() {
     update_progress
@@ -629,6 +641,15 @@ LAUNCHEREOF
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
     
+    # Termux:Widget Shortcut
+    mkdir -p ~/.shortcuts
+    cat > ~/.shortcuts/Start_DexLinux << 'WIDGETEOF'
+#!/data/data/com.termux/files/usr/bin/bash
+bash ~/start-dexlinux.sh
+WIDGETEOF
+    chmod +x ~/.shortcuts/Start_DexLinux
+    draw_line "${GREEN}✓${NC} Created Android Widget Shortcut"
+    
     # Rest of tool scripts
     cat > ~/dex-res.sh << 'RESOEOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -667,20 +688,16 @@ while true; do
     echo "╔═══════════════════════════════════════════╗"
     echo "║     🔧       DexLinux - Quick Tools       ║"
     echo "╠═══════════════════════════════════════════╣"
-    echo "║  1) 🌐 Nmap - Network Scan                ║"
-    echo "║  2) 💀 Metasploit Console                 ║"
-    echo "║  3) 🖥️  Start Desktop                     ║"
-    echo "║  4) 📏 Change Resolution (xrandr)         ║"
-    echo "║  5) 🔍 Check GPU Status                   ║"
+    echo "║  1) 🖥️  Start Desktop                     ║"
+    echo "║  2) 📏 Change Resolution (xrandr)         ║"
+    echo "║  3) 🔍 Check GPU Status                   ║"
     echo "║  0) ❌ Exit                               ║"
     echo "╚═══════════════════════════════════════════╝"
     read -p "  Select option: " choice
     case $choice in
-        1) read -p "Target: " t; nmap -sV $t; read -p "Enter...";;
-        2) msfconsole;;
-        3) bash ~/start-dexlinux.sh;;
-        4) bash ~/dex-res.sh;;
-        5) glxinfo | grep "renderer"; read -p "Enter...";;
+        1) bash ~/start-dexlinux.sh;;
+        2) bash ~/dex-res.sh;;
+        3) glxinfo | grep "renderer"; read -p "Enter...";;
         0) exit 0;;
     esac
 done
@@ -731,7 +748,7 @@ EOF
     cat > ~/Desktop/DexTools.desktop << 'EOF'
 [Desktop Entry]
 Name=DexTools
-Comment=Network & System Tools
+Comment=System Tools
 Exec=xfce4-terminal -e "bash /data/data/com.termux/files/home/dex-tools.sh"
 Icon=utilities-terminal
 Type=Application
@@ -794,12 +811,12 @@ main() {
     step_themes
     step_apps
     
-    if [ "$INSTALL_NETWORK" == "true" ]; then
-        step_network_tools
+    if [[ "$INSTALL_EXTRA_APPS" != *"0"* ]] && [[ -n "$INSTALL_EXTRA_APPS" ]]; then
+        step_extra_apps
     fi
     
     [[ "$INSTALL_PROOT" == "true" ]] && step_proot
-    [[ "$INSTALL_WINE" == "true" ]] && step_wine
+
     
     step_launchers
     step_shortcuts
