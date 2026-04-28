@@ -20,6 +20,8 @@ INSTALL_EXTRA_APPS="1 3 4 5 6"
 INSTALL_PROOT=false
 PROOT_DISTRO="ubuntu"
 HAS_ROOT=false
+SYS_LOCALE="en_US.UTF-8"
+SYS_KBD="us"
 
 # Auto-detect terminal width for UI
 TERM_COLS=$(tput cols 2>/dev/null || echo 45)
@@ -195,6 +197,49 @@ select_extra_apps() {
     INSTALL_EXTRA_APPS="$app_choice"
 }
 
+select_language() {
+    echo ""
+    draw_box "Language & Keyboard"
+    draw_line "${WHITE}1)${NC} English ${GRAY}(en_US)${NC}"
+    draw_line "${WHITE}2)${NC} Portuguese ${GRAY}(pt_PT)${NC}"
+    draw_line "${WHITE}3)${NC} Portuguese (BR) ${GRAY}(pt_BR)${NC}"
+    draw_line "${WHITE}4)${NC} Spanish ${GRAY}(es_ES)${NC}"
+    draw_line "${WHITE}5)${NC} French ${GRAY}(fr_FR)${NC}"
+    draw_line "${WHITE}6)${NC} German ${GRAY}(de_DE)${NC}"
+    draw_bottom
+    echo ""
+    read -p "  Select option [1-6]: " l_choice < /dev/tty
+    case $l_choice in
+        2) 
+            SYS_LOCALE="pt_PT.UTF-8"
+            SYS_KBD="pt"
+            ;;
+        3) 
+            SYS_LOCALE="pt_BR.UTF-8"
+            SYS_KBD="br"
+            ;;
+        4) 
+            SYS_LOCALE="es_ES.UTF-8"
+            SYS_KBD="es"
+            ;;
+        5) 
+            SYS_LOCALE="fr_FR.UTF-8"
+            SYS_KBD="fr"
+            ;;
+        6) 
+            SYS_LOCALE="de_DE.UTF-8"
+            SYS_KBD="de"
+            ;;
+        *) 
+            SYS_LOCALE="en_US.UTF-8"
+            SYS_KBD="us"
+            ;;
+    esac
+    echo ""
+    print_status "✅" "Language: ${WHITE}${BOLD}${SYS_LOCALE}${NC} | Keyboard: ${WHITE}${BOLD}${SYS_KBD}${NC}"
+    echo ""
+}
+
 # ============== SELECTION MENU ==============
 show_menu() {
     draw_box "Installation Mode"
@@ -234,6 +279,8 @@ show_menu() {
             TOTAL_STEPS=14
             ;;
     esac
+    
+    select_language
 }
 # ============== ROOT DETECTION ==============
 check_root() {
@@ -514,7 +561,10 @@ step_proot() {
     
     if ! proot-distro login ${PROOT_DISTRO} -- bash -c "grep -q 'DEXLINUX_CONFIG' /etc/profile" > /dev/null 2>&1; then
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
-            apt update && apt install -y sudo wget curl git mesa-utils > /dev/null 2>&1
+            apt update && apt install -y sudo wget curl git mesa-utils locales > /dev/null 2>&1
+            sed -i -e \"s/# \${SYS_LOCALE} UTF-8/\${SYS_LOCALE} UTF-8/\" /etc/locale.gen
+            locale-gen > /dev/null 2>&1
+            update-locale LANG=\${SYS_LOCALE}
             if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
                 useradd -m -s /bin/bash ${PROOT_USER}
                 echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
@@ -647,8 +697,10 @@ while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
     COUNT=$((COUNT + 1))
 done
 export DISPLAY=:0
+setxkbmap DEX_KBD_PLACEHOLDER 2>/dev/null
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
+    sed -i "s/DEX_KBD_PLACEHOLDER/${SYS_KBD}/g" ~/start-dexlinux.sh
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
     
