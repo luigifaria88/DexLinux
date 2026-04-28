@@ -454,6 +454,16 @@ EOF
   </property>
 </channel>
 EOF
+
+    cat > "$CONF_DIR/xfce4-power-manager.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-power-manager" version="1.0">
+  <property name="xfce4-power-manager" type="empty">
+    <property name="dpms-enabled" type="bool" value="false"/>
+    <property name="presentation-mode" type="bool" value="true"/>
+  </property>
+</channel>
+EOF
     draw_bottom
 }
 # ============== STEP 10: INSTALL BROWSERS & APPS ==============
@@ -512,6 +522,8 @@ step_proot() {
             fi
             cat >> /etc/profile << 'EOF'
 # DEXLINUX_CONFIG_START
+export USER=$(whoami)
+export LOGNAME=$USER
 export DISPLAY=:0
 export PULSE_SERVER=127.0.0.1
 export GALLIUM_DRIVER=zink
@@ -602,9 +614,8 @@ GPUEOF
     fi
     
     # Customize Termux Prompt to hide u0_aXXX
-    if ! grep -q "PS1=" ~/.bashrc 2>/dev/null; then
-        echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
-    fi
+    sed -i '/export PS1=/d' ~/.bashrc 2>/dev/null
+    echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
     
     # Main Launcher
     cat > ~/start-dexlinux.sh << 'LAUNCHEREOF'
@@ -636,7 +647,7 @@ while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
     COUNT=$((COUNT + 1))
 done
 export DISPLAY=:0
-exec startxfce4
+exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
