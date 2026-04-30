@@ -423,7 +423,6 @@ step_repos() {
     install_pkg "curl" "cURL"
     install_pkg "git" "Git"
     install_pkg "gnupg" "GnuPG (Keys)"
-    install_pkg "debian-archive-keyring" "Debian Keys"
     install_pkg "sassc" "Sass Compiler"
     install_pkg "tar" "Tar Utility"
     install_pkg "file" "File Utility"
