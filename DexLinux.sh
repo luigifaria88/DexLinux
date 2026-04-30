@@ -130,7 +130,7 @@ install_pkg() {
     local pkg=$1
     local name=${2:-$pkg}
     
-    (yes | pkg install $pkg -y > /dev/null 2>&1) &
+    (yes | pkg install $pkg -y) > /dev/null 2>&1 &
     spinner $! "Installing ${name}..."
 }
 # ============== BANNER ==============
@@ -405,10 +405,10 @@ step_update() {
     update_progress
     draw_box "Updating System"
     
-    (yes | pkg update -y > /dev/null 2>&1) &
+    (yes | pkg update -y) > /dev/null 2>&1 &
     spinner $! "Updating package lists"
     
-    (yes | pkg upgrade -y > /dev/null 2>&1) &
+    (yes | pkg upgrade -y) > /dev/null 2>&1 &
     spinner $! "Upgrading installed packages"
     draw_bottom
 }
@@ -465,7 +465,7 @@ step_gpu() {
     fi
     
     # Install Vulkan Loader with fallback
-    (pkg install vulkan-loader -y > /dev/null 2>&1) &
+    (pkg install vulkan-loader -y) > /dev/null 2>&1 &
     spinner $! "Vulkan Loader"
     
     draw_line "${GREEN}✓${NC} GPU acceleration configured!"
@@ -606,7 +606,7 @@ step_proot() {
     
     install_pkg "proot-distro" "PRoot Manager"
     
-    (proot-distro install ${PROOT_DISTRO} > /dev/null 2>&1) &
+    (proot-distro install ${PROOT_DISTRO}) > /dev/null 2>&1 &
     spinner $! "Installing ${PROOT_DISTRO}"
     
     if ! proot-distro login ${PROOT_DISTRO} -- bash -c "grep -q 'DEXLINUX_CONFIG' /etc/profile" > /dev/null 2>&1; then
@@ -634,7 +634,7 @@ export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
 EOF
             echo "export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '" >> /etc/bash.bashrc
-        " > /dev/null 2>&1) &
+        ") > /dev/null 2>&1 &
         spinner $! "Bootstrapping environment"
     fi
 
