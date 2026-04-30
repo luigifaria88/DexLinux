@@ -162,14 +162,16 @@ select_distro() {
     draw_line "${WHITE}1)${NC} Ubuntu 24.04 ${GRAY}(Recommended)${NC}"
     draw_line "${WHITE}2)${NC} Debian ${GRAY}(Stable)${NC}"
     draw_line "${WHITE}3)${NC} Arch Linux ${GRAY}(Bleeding Edge)${NC}"
-    draw_line "${WHITE}4)${NC} Kali Linux ${GRAY}(Security Tools)${NC}"
+    draw_line "${WHITE}4)${NC} Fedora ${GRAY}(Workstation)${NC}"
+    draw_line "${WHITE}5)${NC} Deepin ${GRAY}(Beautiful UI)${NC}"
     draw_bottom
     echo ""
-    read -p "  Select option [1-4]: " d_choice < /dev/tty
+    read -p "  Select option [1-5]: " d_choice < /dev/tty
     case $d_choice in
         2) PROOT_DISTRO="debian" ;;
         3) PROOT_DISTRO="archlinux" ;;
-        4) PROOT_DISTRO="kali" ;;
+        4) PROOT_DISTRO="fedora" ;;
+        5) PROOT_DISTRO="deepin" ;;
         *) PROOT_DISTRO="ubuntu" ;;
     esac
     echo ""
@@ -180,8 +182,8 @@ select_distro() {
     echo ""
 }
 select_extra_apps() {
-    local apps=("Firefox Browser" "Chromium Browser" "VS Code (OSS)" "GIMP Editor" "VLC Player" "LibreOffice (PRoot only)")
-    local selected=(false false false false false false)
+    local apps=("Firefox" "Chromium" "VS Code" "GIMP" "VLC" "LibreOffice" "Inkscape" "btop" "Wine + Box64")
+    local selected=(false false false false false false false false false)
     
     # Pre-select defaults (Firefox)
     selected[0]=true
@@ -210,7 +212,7 @@ select_extra_apps() {
         read -p "  Choice: " choice < /dev/tty
         
         case $choice in
-            [1-6]) 
+            [1-9]) 
                 idx=$((choice-1))
                 if [ "${selected[$idx]}" = true ]; then selected[$idx]=false; else selected[$idx]=true; fi
                 ;;
@@ -275,17 +277,68 @@ select_language() {
     echo ""
 }
 
+# ============== MAINTENANCE MENU ==============
+show_maintenance_menu() {
+    while true; do
+        show_banner
+        draw_box "Maintenance & System Tools"
+        draw_line "${PURPLE}1)${NC} Remove a Distribution ${GRAY}(Arch, Fedora, etc)${NC}"
+        draw_line "${PURPLE}2)${NC} Clean Package Cache ${GRAY}(Free up space)${NC}"
+        draw_line "${PURPLE}3)${NC} Fix XFCE Permissions ${GRAY}(Repair start-up)${NC}"
+        draw_line "${PURPLE}4)${NC} Reset Desktop Resolution ${GRAY}(Safe mode)${NC}"
+        draw_line "${CYAN}B)${NC} Back to Main Menu"
+        draw_bottom
+        echo ""
+        read -p "  Select option: " m_choice < /dev/tty
+        
+        case $m_choice in
+            1)
+                echo ""
+                draw_box "Distro Removal"
+                proot-distro list-installed
+                echo ""
+                read -p "  Enter distro name to remove (or leave empty to cancel): " d_remove < /dev/tty
+                if [[ -n "$d_remove" ]]; then
+                    spinner_pid=$( (proot-distro remove "$d_remove") > /dev/null 2>&1 & echo $! )
+                    spinner $spinner_pid "Removing $d_remove..."
+                    rm -f ~/Desktop/"$(echo $d_remove | sed 's/./\U&/')".desktop 2>/dev/null
+                fi
+                ;;
+            2)
+                (pkg clean && apt autoremove -y) > /dev/null 2>&1 &
+                spinner $! "Cleaning system cache..."
+                ;;
+            3)
+                chmod +x ~/start-dexlinux.sh ~/.shortcuts/* 2>/dev/null
+                print_status "✅" "Permissions repaired."
+                sleep 1
+                ;;
+            4)
+                rm -f ~/.config/dexlinux-res.sh 2>/dev/null
+                print_status "✅" "Resolution reset to default."
+                sleep 1
+                ;;
+            [Bb]) return ;;
+        esac
+    done
+}
+
 # ============== SELECTION MENU ==============
 show_menu() {
     draw_box "Installation Mode"
     draw_line "${CYAN}1)${NC} ${BOLD}Full Installation${NC} ${GRAY}(All Apps + Distro)${NC}"
     draw_line "${CYAN}2)${NC} ${BOLD}Minimal Installation${NC} ${GRAY}(Core Desktop Only)${NC}"
     draw_line "${CYAN}3)${NC} ${BOLD}Custom Installation${NC} ${GRAY}(Choose manually)${NC}"
+    draw_line "${PURPLE}M)${NC} ${BOLD}Maintenance Menu${NC} ${GRAY}(Remove distros, cleanup)${NC}"
     draw_bottom
     echo ""
-    read -p "  Select option [1-3]: " mode_choice < /dev/tty
+    read -p "  Select option [1-3, M]: " mode_choice < /dev/tty
 
     case $mode_choice in
+        [Mm])
+            show_maintenance_menu
+            exit 0
+            ;;
         1)
             INSTALL_PROOT=true
             TOTAL_STEPS=14
@@ -595,6 +648,16 @@ step_extra_apps() {
     if [[ "$INSTALL_EXTRA_APPS" == *"5"* ]]; then
         install_pkg "vlc" "VLC Player"
     fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"7"* ]]; then
+        install_pkg "inkscape" "Inkscape"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"8"* ]]; then
+        install_pkg "btop" "btop Monitor"
+    fi
+    if [[ "$INSTALL_EXTRA_APPS" == *"9"* ]]; then
+        install_pkg "box64" "Box64 Emulation"
+        install_pkg "wine-stable" "Wine (Windows Apps)"
+    fi
 
     draw_bottom
 }
@@ -605,13 +668,6 @@ step_proot() {
     
     install_pkg "proot-distro" "PRoot Manager"
     
-    # Check for alias fallback (e.g. kali vs kali-nethunter)
-    if ! proot-distro list | grep -q "^  ${PROOT_DISTRO}$"; then
-        if [[ "$PROOT_DISTRO" == "kali" ]] && proot-distro list | grep -q "kali-nethunter"; then
-            PROOT_DISTRO="kali-nethunter"
-        fi
-    fi
-
     (proot-distro install ${PROOT_DISTRO}) > /dev/null 2>&1 &
     spinner $! "Installing ${PROOT_DISTRO}"
     
@@ -627,10 +683,22 @@ step_proot() {
             PM_UPDATE="pacman -Syu --noconfirm"
             PM_INSTALL="pacman -S --noconfirm"
             PKG_BASE="sudo wget curl git mesa-utils"
-            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA="libreoffice-fresh"
+            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice-fresh"
+            [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
+            [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
+            LOCALE_CONF="echo 'LANG=${SYS_LOCALE}' > /etc/locale.conf"
+        elif [[ "$PROOT_DISTRO" == "fedora" ]]; then
+            PM_UPDATE="dnf update -y"
+            PM_INSTALL="dnf install -y"
+            PKG_BASE="sudo wget curl git mesa-utils glibc-all-langpacks"
+            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice"
+            [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
+            [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
             LOCALE_CONF="echo 'LANG=${SYS_LOCALE}' > /etc/locale.conf"
         else
-            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA="libreoffice libreoffice-gtk3"
+            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice libreoffice-gtk3"
+            [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
+            [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
         fi
 
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
@@ -643,8 +711,8 @@ step_proot() {
                 echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
                 chmod 0440 /etc/sudoers.d/${PROOT_USER}
             fi
-            echo "export LANG=${SYS_LOCALE}" >> /etc/profile
-            echo "export LC_ALL=${SYS_LOCALE}" >> /etc/profile
+            echo \"export LANG=${SYS_LOCALE}\" >> /etc/profile
+            echo \"export LC_ALL=${SYS_LOCALE}\" >> /etc/profile
             cat >> /etc/profile << 'EOF'
 # DEXLINUX_CONFIG_START
 export USER=\$(whoami)
@@ -656,7 +724,7 @@ export MESA_LOADER_DRIVER_OVERRIDE=zink
 export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
 EOF
-            echo "export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '" >> /etc/bash.bashrc
+            echo \"export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '\" >> /etc/bash.bashrc
         ") > /dev/null 2>&1 &
         spinner $! "Bootstrapping environment"
     fi
@@ -666,7 +734,7 @@ EOF
 [Desktop Entry]
 Name=${D_NAME} Shell
 Comment=Open ${D_NAME} environment with GPU Support
-Exec=xfce4-terminal -e "bash -c 'export DISPLAY=:0; source ~/.config/dexlinux-gpu.sh; proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}'"
+Exec=xfce4-terminal -e \"bash -c 'export DISPLAY=:0; source ~/.config/dexlinux-gpu.sh; proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}'\"
 Icon=utilities-terminal
 Type=Application
 Categories=System;
