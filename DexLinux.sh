@@ -180,21 +180,56 @@ select_distro() {
     echo ""
 }
 select_extra_apps() {
+    local apps=("Firefox Browser" "Chromium Browser" "VS Code (OSS)" "GIMP Editor" "VLC Player" "LibreOffice Suite")
+    local selected=(false false false false false false)
+    
+    # Pre-select defaults (1 3 4 5 6)
+    for i in 1 3 4 5 6; do selected[$((i-1))]=true; done
+
+    while true; do
+        show_banner
+        draw_box "App Selection (Interactive)"
+        draw_line "${GRAY}Toggle numbers, use [A]ll, [N]one, or [Enter] to finish${NC}"
+        echo ""
+        
+        for i in "${!apps[@]}"; do
+            if [ "${selected[$i]}" = true ]; then
+                echo -e "  ${GREEN}●${NC}  ${WHITE}$((i+1)))${NC} ${BOLD}${apps[$i]}${NC} ${GREEN}✔${NC}"
+            else
+                echo -e "  ${GRAY}○${NC}  ${WHITE}$((i+1)))${NC} ${apps[$i]}"
+            fi
+        done
+        
+        echo ""
+        draw_line "${CYAN}A)${NC} Select All"
+        draw_line "${CYAN}N)${NC} Clear Selection"
+        draw_line "${GREEN}Enter)${NC} ${BOLD}Confirm & Continue${NC}"
+        draw_bottom
+        echo ""
+        
+        read -p "  Choice: " choice < /dev/tty
+        
+        case $choice in
+            [1-6]) 
+                idx=$((choice-1))
+                if [ "${selected[$idx]}" = true ]; then selected[$idx]=false; else selected[$idx]=true; fi
+                ;;
+            [Aa]) for i in "${!selected[@]}"; do selected[$i]=true; done ;;
+            [Nn]) for i in "${!selected[@]}"; do selected[$i]=false; done ;;
+            "") break ;;
+        esac
+    done
+
+    # Export selection
+    INSTALL_EXTRA_APPS=""
+    for i in "${!selected[@]}"; do
+        if [ "${selected[$i]}" = true ]; then
+            INSTALL_EXTRA_APPS+="$((i+1)) "
+        fi
+    done
+    
+    [[ -z "$INSTALL_EXTRA_APPS" ]] && INSTALL_EXTRA_APPS="0"
     echo ""
-    draw_box "Extra Applications"
-    draw_line "${WHITE}1)${NC} Firefox Browser"
-    draw_line "${WHITE}2)${NC} Chromium Browser"
-    draw_line "${WHITE}3)${NC} VS Code (Code-OSS)"
-    draw_line "${WHITE}4)${NC} GIMP (Image Editor)"
-    draw_line "${WHITE}5)${NC} VLC Media Player"
-    draw_line "${WHITE}6)${NC} LibreOffice"
-    draw_line "${WHITE}7)${NC} All of the above"
-    draw_line "${WHITE}0)${NC} None"
-    draw_bottom
-    echo ""
-    read -p "  Select options (e.g. 2 4 6, or 7): " app_choice < /dev/tty
-    [[ -z "$app_choice" ]] && app_choice="0"
-    INSTALL_EXTRA_APPS="$app_choice"
 }
 
 select_language() {
@@ -539,12 +574,10 @@ step_apps() {
 }
 # ============== STEP 8: INSTALL EXTRA APPS ==============
 step_extra_apps() {
-    [[ "$INSTALL_EXTRA_APPS" == *"0"* ]] || [[ -z "$INSTALL_EXTRA_APPS" ]] && return
+    [[ "$INSTALL_EXTRA_APPS" == "0" ]] || [[ -z "$INSTALL_EXTRA_APPS" ]] && return
     
     update_progress
     draw_box "Extra Applications"
-    
-    [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && INSTALL_EXTRA_APPS="1 2 3 4 5 6"
     
     if [[ "$INSTALL_EXTRA_APPS" == *"1"* ]]; then
         install_pkg "firefox" "Firefox Browser"
