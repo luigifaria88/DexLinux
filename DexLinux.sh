@@ -136,25 +136,32 @@ install_pkg() {
 # ============== BANNER ==============
 show_banner() {
     clear
+    TERM_COLS=$(tput cols 2>/dev/null || echo 45)
+    [[ "$TERM_COLS" -lt 40 ]] && TERM_COLS=40
+    BOX_WIDTH=$((TERM_COLS - 4))
+    [[ "$BOX_WIDTH" -gt 76 ]] && BOX_WIDTH=76
+
     local title="DexLinux v1.0"
     local sub1="Mobile Linux Desktop"
     local sub2="Design by LuigiFaria88"
     
-    local pad_title=$(( (BOX_WIDTH - ${#title}) / 2 ))
-    [[ $pad_title -lt 0 ]] && pad_title=0
-    local pad_sub1=$(( (BOX_WIDTH - ${#sub1}) / 2 ))
-    [[ $pad_sub1 -lt 0 ]] && pad_sub1=0
-    local pad_sub2=$(( (BOX_WIDTH - ${#sub2}) / 2 ))
-    [[ $pad_sub2 -lt 0 ]] && pad_sub2=0
-    
-    echo ""
-    echo -e "${CYAN}$(printf '━%.0s' $(seq 1 ${BOX_WIDTH}))${NC}"
-    printf "%*s%b\n" "$pad_title" "" "${BOLD}${WHITE}${title}${NC}"
-    printf "%*s%b\n" "$pad_sub1" "" "${CYAN}${sub1}${NC}"
-    printf "%*s%b\n" "$pad_sub2" "" "${GRAY}${sub2}${NC}"
-    echo -e "${CYAN}$(printf '━%.0s' $(seq 1 ${BOX_WIDTH}))${NC}"
+    print_centered() {
+        local text="$1"
+        local color="$2"
+        local text_len=${#text}
+        local padding=$(( (BOX_WIDTH - text_len) / 2 ))
+        local rem=$(( (BOX_WIDTH - text_len) % 2 ))
+        printf "${CYAN}┃${NC}%*s${color}%s${NC}%*s${CYAN}┃${NC}\n" "$padding" "" "$text" "$((padding + rem))" ""
+    }
+
+    echo -e "${CYAN}┏$(printf '━%.0s' $(seq 1 $BOX_WIDTH))┓${NC}"
+    print_centered "$title" "${BOLD}${WHITE}"
+    print_centered "$sub1" "${CYAN}"
+    print_centered "$sub2" "${GRAY}"
+    echo -e "${CYAN}┗$(printf '━%.0s' $(seq 1 $BOX_WIDTH))┛${NC}"
     echo ""
 }
+
 # ============== DISTRO SELECTION ==============
 select_distro() {
     echo ""
