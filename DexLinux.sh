@@ -295,7 +295,11 @@ show_maintenance_menu() {
             1)
                 echo ""
                 draw_box "Distro Removal"
-                proot-distro list-installed
+                if command -v proot-distro > /dev/null; then
+                    proot-distro list
+                else
+                    print_status "⚠️" "proot-distro is not installed yet."
+                fi
                 echo ""
                 read -p "  Enter distro name to remove (or leave empty to cancel): " d_remove < /dev/tty
                 if [[ -n "$d_remove" ]]; then
