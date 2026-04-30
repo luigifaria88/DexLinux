@@ -180,7 +180,7 @@ select_distro() {
     echo ""
 }
 select_extra_apps() {
-    local apps=("Firefox Browser" "Chromium Browser" "VS Code (OSS)" "GIMP Editor" "VLC Player" "LibreOffice Suite")
+    local apps=("Firefox Browser" "Chromium Browser" "VS Code (OSS)" "GIMP Editor" "VLC Player" "LibreOffice (PRoot only)")
     local selected=(false false false false false false)
     
     # Pre-select defaults (Firefox)
@@ -422,6 +422,8 @@ step_repos() {
     install_pkg "wget" "Wget Downloader"
     install_pkg "curl" "cURL"
     install_pkg "git" "Git"
+    install_pkg "gnupg" "GnuPG (Keys)"
+    install_pkg "debian-archive-keyring" "Debian Keys"
     install_pkg "sassc" "Sass Compiler"
     install_pkg "tar" "Tar Utility"
     install_pkg "file" "File Utility"
@@ -454,7 +456,7 @@ step_gpu() {
     update_progress
     draw_box "GPU Acceleration (Turnip/Zink)"
     
-    install_pkg "mesa-zink" "Mesa Zink (OpenGL)"
+    install_pkg "mesa" "Mesa (OpenGL/Zink)"
     
     if [ "$GPU_DRIVER" == "freedreno" ]; then
         install_pkg "mesa-vulkan-icd-freedreno" "Turnip Driver"
@@ -594,9 +596,7 @@ step_extra_apps() {
     if [[ "$INSTALL_EXTRA_APPS" == *"5"* ]]; then
         install_pkg "vlc" "VLC Player"
     fi
-    if [[ "$INSTALL_EXTRA_APPS" == *"6"* ]]; then
-        install_pkg "libreoffice" "LibreOffice"
-    fi
+
     draw_bottom
 }
 # ============== STEP 12: INSTALL PROOT (OPTIONAL) ==============
@@ -606,15 +606,39 @@ step_proot() {
     
     install_pkg "proot-distro" "PRoot Manager"
     
+    # Check for alias fallback (e.g. kali vs kali-nethunter)
+    if ! proot-distro list | grep -q "^  ${PROOT_DISTRO}$"; then
+        if [[ "$PROOT_DISTRO" == "kali" ]] && proot-distro list | grep -q "kali-nethunter"; then
+            PROOT_DISTRO="kali-nethunter"
+        fi
+    fi
+
     (proot-distro install ${PROOT_DISTRO}) > /dev/null 2>&1 &
     spinner $! "Installing ${PROOT_DISTRO}"
     
     if ! proot-distro login ${PROOT_DISTRO} -- bash -c "grep -q 'DEXLINUX_CONFIG' /etc/profile" > /dev/null 2>&1; then
+        # Distro-specific configuration
+        local PM_UPDATE="apt update"
+        local PM_INSTALL="apt install -y"
+        local PKG_BASE="sudo wget curl git mesa-utils locales"
+        local PKG_EXTRA=""
+        local LOCALE_CONF="update-locale LANG=${SYS_LOCALE}"
+
+        if [[ "$PROOT_DISTRO" == "archlinux" ]]; then
+            PM_UPDATE="pacman -Syu --noconfirm"
+            PM_INSTALL="pacman -S --noconfirm"
+            PKG_BASE="sudo wget curl git mesa-utils"
+            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA="libreoffice-fresh"
+            LOCALE_CONF="echo 'LANG=${SYS_LOCALE}' > /etc/locale.conf"
+        else
+            [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA="libreoffice libreoffice-gtk3"
+        fi
+
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
-            apt update && apt install -y sudo wget curl git mesa-utils locales > /dev/null 2>&1
-            sed -i -e "s/# ${SYS_LOCALE} UTF-8/${SYS_LOCALE} UTF-8/" /etc/locale.gen
+            ${PM_UPDATE} && ${PM_INSTALL} ${PKG_BASE} ${PKG_EXTRA} > /dev/null 2>&1
+            sed -i -e \"s/# ${SYS_LOCALE} UTF-8/${SYS_LOCALE} UTF-8/\" /etc/locale.gen
             locale-gen > /dev/null 2>&1
-            update-locale LANG=${SYS_LOCALE}
+            ${LOCALE_CONF}
             if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
                 useradd -m -s /bin/bash ${PROOT_USER}
                 echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
