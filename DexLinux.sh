@@ -340,9 +340,24 @@ detect_device() {
         print_status "🔒" "Root: ${RED}Not Available${NC}"
     fi
     
-    if [[ "$GPU_VENDOR" == *"adreno"* ]] || [[ "$DEVICE_BRAND" == *"samsung"* ]] || [[ "$DEVICE_BRAND" == *"Samsung"* ]] || [[ "$DEVICE_BRAND" == *"oneplus"* ]] || [[ "$DEVICE_BRAND" == *"xiaomi"* ]]; then
+    GPU_VENDOR_L=$(echo "$GPU_VENDOR" | tr '[:upper:]' '[:lower:]')
+    DEVICE_BRAND_L=$(echo "$DEVICE_BRAND" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$GPU_VENDOR_L" == *"adreno"* ]]; then
         GPU_DRIVER="freedreno"
         print_status "🎮" "GPU: ${WHITE}Adreno (Native Acceleration)${NC}"
+    elif [[ "$GPU_VENDOR_L" == *"mali"* ]] || [[ "$GPU_VENDOR_L" == *"arm"* ]] || [[ "$DEVICE_BRAND_L" == *"huawei"* ]] || [[ "$DEVICE_BRAND_L" == *"honor"* ]]; then
+        GPU_DRIVER="mali"
+        print_status "🎮" "GPU: ${WHITE}Mali (Hardware Accelerated)${NC}"
+    elif [[ "$GPU_VENDOR_L" == *"powervr"* ]] || [[ "$GPU_VENDOR_L" == *"pvr"* ]] || [[ "$GPU_VENDOR_L" == *"rogue"* ]]; then
+        GPU_DRIVER="mali" # Use Zink path
+        print_status "🎮" "GPU: ${WHITE}PowerVR (Hardware Accelerated)${NC}"
+    elif [[ "$DEVICE_BRAND_L" =~ ^(samsung|oneplus|xiaomi|google|realme|oppo|vivo|motorola|nokia|sony|asus)$ ]]; then
+        GPU_DRIVER="freedreno"
+        print_status "🎮" "GPU: ${WHITE}${DEVICE_BRAND} (Assuming Adreno)${NC}"
+    elif [[ -n "$GPU_VENDOR" ]] && [[ "$GPU_VENDOR_L" != *"swrast"* ]] && [[ "$GPU_VENDOR_L" != *"llvmpipe"* ]]; then
+        GPU_DRIVER="mali" # Use Zink path
+        print_status "🎮" "GPU: ${WHITE}${GPU_VENDOR} (Hardware Accelerated)${NC}"
     else
         GPU_DRIVER="swrast"
         print_status "🎮" "GPU: ${YELLOW}Software Rendering (Fallback)${NC}"
@@ -408,6 +423,8 @@ step_gpu() {
     
     if [ "$GPU_DRIVER" == "freedreno" ]; then
         install_pkg "mesa-vulkan-icd-freedreno" "Turnip Driver"
+    elif [ "$GPU_DRIVER" == "mali" ]; then
+        draw_line "${CYAN}ℹ${NC} Hardware acceleration detected. Using System Vulkan + Zink."
     else
         install_pkg "mesa-vulkan-icd-swrast" "Software Vulkan"
     fi
@@ -562,14 +579,16 @@ step_proot() {
     if ! proot-distro login ${PROOT_DISTRO} -- bash -c "grep -q 'DEXLINUX_CONFIG' /etc/profile" > /dev/null 2>&1; then
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
             apt update && apt install -y sudo wget curl git mesa-utils locales > /dev/null 2>&1
-            sed -i -e \"s/# \${SYS_LOCALE} UTF-8/\${SYS_LOCALE} UTF-8/\" /etc/locale.gen
+            sed -i -e "s/# ${SYS_LOCALE} UTF-8/${SYS_LOCALE} UTF-8/" /etc/locale.gen
             locale-gen > /dev/null 2>&1
-            update-locale LANG=\${SYS_LOCALE}
+            update-locale LANG=${SYS_LOCALE}
             if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
                 useradd -m -s /bin/bash ${PROOT_USER}
                 echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
                 chmod 0440 /etc/sudoers.d/${PROOT_USER}
             fi
+            echo "export LANG=${SYS_LOCALE}" >> /etc/profile
+            echo "export LC_ALL=${SYS_LOCALE}" >> /etc/profile
             cat >> /etc/profile << 'EOF'
 # DEXLINUX_CONFIG_START
 export USER=$(whoami)
@@ -654,6 +673,8 @@ export MESA_LOADER_DRIVER_OVERRIDE=zink
 export TU_DEBUG=noconform
 export MESA_VK_WSI_PRESENT_MODE=immediate
 export ZINK_DESCRIPTORS=lazy
+export LANG=DEX_LANG_PLACEHOLDER
+export LC_ALL=DEX_LANG_PLACEHOLDER
 export XDG_DATA_DIRS=/data/data/com.termux/files/usr/share:${XDG_DATA_DIRS}
 export XDG_CONFIG_DIRS=/data/data/com.termux/files/usr/etc/xdg:${XDG_CONFIG_DIRS}
 GPUEOF
@@ -697,10 +718,14 @@ while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
     COUNT=$((COUNT + 1))
 done
 export DISPLAY=:0
+export LANG=DEX_LANG_PLACEHOLDER
+export LC_ALL=DEX_LANG_PLACEHOLDER
 setxkbmap DEX_KBD_PLACEHOLDER 2>/dev/null
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
     sed -i "s/DEX_KBD_PLACEHOLDER/${SYS_KBD}/g" ~/start-dexlinux.sh
+    sed -i "s/DEX_LANG_PLACEHOLDER/${SYS_LOCALE}/g" ~/start-dexlinux.sh
+    sed -i "s/DEX_LANG_PLACEHOLDER/${SYS_LOCALE}/g" ~/.config/dexlinux-gpu.sh
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
     
