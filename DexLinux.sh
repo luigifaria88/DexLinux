@@ -591,8 +591,8 @@ step_proot() {
             echo "export LC_ALL=${SYS_LOCALE}" >> /etc/profile
             cat >> /etc/profile << 'EOF'
 # DEXLINUX_CONFIG_START
-export USER=$(whoami)
-export LOGNAME=$USER
+export USER=\$(whoami)
+export LOGNAME=\$USER
 export DISPLAY=:0
 export PULSE_SERVER=127.0.0.1
 export GALLIUM_DRIVER=zink
@@ -600,6 +600,7 @@ export MESA_LOADER_DRIVER_OVERRIDE=zink
 export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
 EOF
+            echo "export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '" >> /etc/bash.bashrc
         " > /dev/null 2>&1) &
         spinner $! "Bootstrapping environment"
     fi
@@ -686,15 +687,15 @@ GPUEOF
     
     # Customize Termux Prompt to hide u0_aXXX
     sed -i '/export PS1=/d' ~/.bashrc 2>/dev/null
-    echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
+    echo "export PS1=\"\\[\\e[32m\\]\${USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
     
     # Main Launcher
     cat > ~/start-dexlinux.sh << 'LAUNCHEREOF'
 #!/data/data/com.termux/files/usr/bin/bash
 echo ""
 echo "🚀 Starting DexLinux Desktop..."
-export USER="user"
-export LOGNAME="user"
+export USER="${PROOT_USER:-dex}"
+export LOGNAME="${PROOT_USER:-dex}"
 export XDG_RUNTIME_DIR=${TMPDIR:-/data/data/com.termux/files/usr/tmp}
 source ~/.config/dexlinux-gpu.sh 2>/dev/null
 pkill -9 -f "termux.x11" 2>/dev/null
