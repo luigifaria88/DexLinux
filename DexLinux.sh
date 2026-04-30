@@ -15,7 +15,7 @@
 # ============== CONFIGURATION ==============
 TOTAL_STEPS=14
 CURRENT_STEP=0
-INSTALL_EXTRA_APPS="1 3 4 5 6"
+INSTALL_EXTRA_APPS="1"
 
 INSTALL_PROOT=false
 PROOT_DISTRO="ubuntu"
@@ -183,8 +183,8 @@ select_extra_apps() {
     local apps=("Firefox Browser" "Chromium Browser" "VS Code (OSS)" "GIMP Editor" "VLC Player" "LibreOffice Suite")
     local selected=(false false false false false false)
     
-    # Pre-select defaults (1 3 4 5 6)
-    for i in 1 3 4 5 6; do selected[$((i-1))]=true; done
+    # Pre-select defaults (Firefox)
+    selected[0]=true
 
     while true; do
         show_banner
