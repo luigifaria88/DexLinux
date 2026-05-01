@@ -166,7 +166,7 @@ show_banner() {
 select_distro() {
     echo ""
     draw_box "Subsystem Selection"
-    draw_line "${WHITE}1)${NC} Ubuntu 24.04 ${GRAY}(Recommended)${NC}"
+    draw_line "${WHITE}1)${NC} Ubuntu ${GRAY}(Recommended)${NC}"
     draw_line "${WHITE}2)${NC} Debian ${GRAY}(Stable)${NC}"
     draw_line "${WHITE}3)${NC} Arch Linux ${GRAY}(Bleeding Edge)${NC}"
     draw_line "${WHITE}4)${NC} Fedora ${GRAY}(Workstation)${NC}"
@@ -584,6 +584,24 @@ step_themes() {
     fi
     rm -rf "$T_DIR"
     
+    if [[ "$PROOT_DISTRO" == "deepin" ]]; then
+        draw_line "${YELLOW}⏳${NC} Deepin Mode: Installing Fluent Icons..."
+        I_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/fluent-icons"
+        rm -rf "$I_DIR"
+        if git clone --depth 1 https://github.com/vinceliuice/Fluent-icon-theme.git "$I_DIR" > /dev/null 2>&1; then
+            cd "$I_DIR"
+            bash install.sh -d ~/.icons > /dev/null 2>&1
+            ICON_THEME="Fluent-dark"
+            draw_line "${GREEN}✓${NC} Fluent Icons installed"
+            cd - > /dev/null
+        else
+            ICON_THEME="Papirus-Dark"
+        fi
+        rm -rf "$I_DIR"
+    else
+        ICON_THEME="Papirus-Dark"
+    fi
+
     draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
     CONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
     mkdir -p "$CONF_DIR"
@@ -593,17 +611,59 @@ step_themes() {
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
     <property name="ThemeName" type="string" value="Orchis-Dark"/>
-    <property name="IconThemeName" type="string" value="Papirus-Dark"/>
+    <property name="IconThemeName" type="string" value="${ICON_THEME}"/>
     <property name="CursorThemeName" type="string" value="Adwaita"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="DecorationLayout" type="string" value="close,minimize,maximize:"/>
   </property>
 </channel>
 EOF
+
+    if [[ "$PROOT_DISTRO" == "deepin" ]]; then
+        # Configure XFCE Panel as a Dock
+        cat > "$CONF_DIR/xfce4-panel.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-panel" version="1.0">
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <property name="panel-1" type="empty">
+      <property name="position" type="string" value="p=6;x=0;y=0"/>
+      <property name="length" type="double" value="80"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="size" type="int" value="52"/>
+      <property name="autohide-behavior" type="int" value="1"/>
+      <property name="background-style" type="int" value="0"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+        <value type="int" value="5"/>
+      </property>
+    </property>
+  </property>
+  <property name="plugins" type="empty">
+    <property name="plugin-1" type="string" value="applicationsmenu"/>
+    <property name="plugin-2" type="string" value="tasklist"/>
+    <property name="plugin-3" type="string" value="separator">
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="int" value="0"/>
+    </property>
+    <property name="plugin-4" type="string" value="systray"/>
+    <property name="plugin-5" type="string" value="clock"/>
+  </property>
+</channel>
+EOF
+    fi
 
     cat > "$CONF_DIR/xfwm4.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
     <property name="theme" type="string" value="Orchis-Dark"/>
+    <property name="title_alignment" type="string" value="center"/>
+    <property name="button_layout" type="string" value="O|HMC"/>
   </property>
 </channel>
 EOF
@@ -693,7 +753,7 @@ step_proot() {
         if [[ "$PROOT_DISTRO" == "archlinux" ]]; then
             PM_UPDATE="pacman -Syu --noconfirm"
             PM_INSTALL="pacman -S --noconfirm"
-            PKG_BASE="sudo wget curl git mesa-utils"
+            PKG_BASE="sudo shadow wget curl git mesa-utils"
             [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice-fresh"
             [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
             [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
@@ -701,7 +761,7 @@ step_proot() {
         elif [[ "$PROOT_DISTRO" == "fedora" ]]; then
             PM_UPDATE="dnf update -y"
             PM_INSTALL="dnf install -y"
-            PKG_BASE="sudo wget curl git mesa-utils glibc-all-langpacks"
+            PKG_BASE="sudo shadow-utils wget curl git mesa-utils glibc-all-langpacks"
             [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice"
             [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
             [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
@@ -714,11 +774,19 @@ step_proot() {
 
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
             ${PM_UPDATE} && ${PM_INSTALL} ${PKG_BASE} ${PKG_EXTRA} > /dev/null 2>&1
-            sed -i -e \"s/# ${SYS_LOCALE} UTF-8/${SYS_LOCALE} UTF-8/\" /etc/locale.gen
-            locale-gen > /dev/null 2>&1
+            if [[ "$PROOT_DISTRO" != "fedora" ]]; then
+                # Robust locale generation: match with or without space after #
+                sed -i \"s/^#\\s*${SYS_LOCALE}/${SYS_LOCALE}/\" /etc/locale.gen 2>/dev/null || true
+                # Fallback: if not found, append it
+                if ! grep -q \"^${SYS_LOCALE}\" /etc/locale.gen 2>/dev/null; then
+                    echo \"${SYS_LOCALE} UTF-8\" >> /etc/locale.gen
+                fi
+                locale-gen > /dev/null 2>&1
+            fi
             ${LOCALE_CONF}
             if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
                 useradd -m -s /bin/bash ${PROOT_USER}
+                mkdir -p /etc/sudoers.d
                 echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
                 chmod 0440 /etc/sudoers.d/${PROOT_USER}
             fi
@@ -740,12 +808,21 @@ EOF
         spinner $! "Bootstrapping environment"
     fi
 
+    # Create a wrapper script for easier access and debugging
+    cat > ~/dexlinux-shell-${PROOT_DISTRO}.sh << EOF
+#!/data/data/com.termux/files/usr/bin/bash
+export DISPLAY=:0
+source ~/.config/dexlinux-gpu.sh
+proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}
+EOF
+    chmod +x ~/dexlinux-shell-${PROOT_DISTRO}.sh
+
     D_NAME=$(echo "$PROOT_DISTRO" | sed 's/./\U&/')
     cat > ~/Desktop/${D_NAME}.desktop << EOF
 [Desktop Entry]
 Name=${D_NAME} Shell
-Comment=Open ${D_NAME} environment with GPU Support
-Exec=xfce4-terminal -e \"bash -c 'export DISPLAY=:0; source ~/.config/dexlinux-gpu.sh; proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}'\"
+Comment=Open ${D_NAME} environment
+Exec=xfce4-terminal --title="${D_NAME} Shell" --command="bash /data/data/com.termux/files/home/dexlinux-shell-${PROOT_DISTRO}.sh"
 Icon=utilities-terminal
 Type=Application
 Categories=System;
