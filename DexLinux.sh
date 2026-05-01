@@ -568,38 +568,79 @@ step_themes() {
     install_pkg "papirus-icon-theme" "Papirus Icons"
     mkdir -p ~/.themes ~/.icons
     
-    draw_line "${YELLOW}⏳${NC} Cloning Orchis Theme..."
+    # Determine Distro-Specific Aesthetics
+    local GTK_COLOR="dark"
+    local ICON_REPO=""
+    local ICON_NAME="Papirus-Dark"
+    local PANEL_POS="p=10;x=0;y=0" # Default Left (Ubuntu-style)
+    local PANEL_SIZE=48
+    local PANEL_LENGTH=100
+
+    case "$PROOT_DISTRO" in
+        "ubuntu")
+            GTK_COLOR="orange"
+            ICON_NAME="Papirus-Dark"
+            PANEL_POS="p=10;x=0;y=0"
+            PANEL_SIZE=48
+            ;;
+        "archlinux")
+            GTK_COLOR="grey"
+            ICON_REPO="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
+            ICON_NAME="WhiteSur-dark"
+            PANEL_POS="p=2;x=0;y=0"
+            PANEL_SIZE=32
+            ;;
+        "fedora")
+            GTK_COLOR="blue"
+            ICON_REPO="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
+            ICON_NAME="WhiteSur-dark"
+            PANEL_POS="p=2;x=0;y=0"
+            PANEL_SIZE=36
+            ;;
+        "deepin")
+            GTK_COLOR="dark"
+            ICON_REPO="https://github.com/vinceliuice/Fluent-icon-theme.git"
+            ICON_NAME="Fluent-dark"
+            PANEL_POS="p=6;x=0;y=0"
+            PANEL_SIZE=52
+            PANEL_LENGTH=80
+            ;;
+        *) # Debian or others
+            GTK_COLOR="dark"
+            ICON_NAME="Papirus-Dark"
+            PANEL_POS="p=6;x=0;y=0"
+            PANEL_SIZE=38
+            ;;
+    esac
+
+    local THEME_NAME="Orchis-${GTK_COLOR}-Dark"
+    [[ "$GTK_COLOR" == "dark" ]] && THEME_NAME="Orchis-Dark"
+
+    draw_line "${YELLOW}⏳${NC} Cloning Orchis Theme (${GTK_COLOR})..."
     T_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/orchis-theme"
     rm -rf "$T_DIR"
     mkdir -p "$T_DIR"
-    
     if git clone --depth 1 https://github.com/vinceliuice/Orchis-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
         find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-        bash install.sh -d ~/.themes -c dark > /dev/null 2>&1
-        draw_line "${GREEN}✓${NC} Orchis Theme installed"
+        bash install.sh -d ~/.themes -c "$GTK_COLOR" -t dark > /dev/null 2>&1
+        draw_line "${GREEN}✓${NC} Orchis ${GTK_COLOR} installed"
         cd - > /dev/null
-    else
-        draw_line "${RED}✗${NC} Failed to clone theme repository"
     fi
     rm -rf "$T_DIR"
-    
-    if [[ "$PROOT_DISTRO" == "deepin" ]]; then
-        draw_line "${YELLOW}⏳${NC} Deepin Mode: Installing Fluent Icons..."
-        I_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/fluent-icons"
+
+    if [[ -n "$ICON_REPO" ]]; then
+        draw_line "${YELLOW}⏳${NC} Installing Custom Icons for ${PROOT_DISTRO}..."
+        I_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/extra-icons"
         rm -rf "$I_DIR"
-        if git clone --depth 1 https://github.com/vinceliuice/Fluent-icon-theme.git "$I_DIR" > /dev/null 2>&1; then
+        if git clone --depth 1 "$ICON_REPO" "$I_DIR" > /dev/null 2>&1; then
             cd "$I_DIR"
+            find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
             bash install.sh -d ~/.icons > /dev/null 2>&1
-            ICON_THEME="Fluent-dark"
-            draw_line "${GREEN}✓${NC} Fluent Icons installed"
+            draw_line "${GREEN}✓${NC} Icons installed"
             cd - > /dev/null
-        else
-            ICON_THEME="Papirus-Dark"
         fi
         rm -rf "$I_DIR"
-    else
-        ICON_THEME="Papirus-Dark"
     fi
 
     draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
@@ -610,8 +651,8 @@ step_themes() {
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="Orchis-Dark"/>
-    <property name="IconThemeName" type="string" value="${ICON_THEME}"/>
+    <property name="ThemeName" type="string" value="${THEME_NAME}"/>
+    <property name="IconThemeName" type="string" value="${ICON_NAME}"/>
     <property name="CursorThemeName" type="string" value="Adwaita"/>
   </property>
   <property name="Gtk" type="empty">
@@ -620,20 +661,18 @@ step_themes() {
 </channel>
 EOF
 
-    if [[ "$PROOT_DISTRO" == "deepin" ]]; then
-        # Configure XFCE Panel as a Dock
-        cat > "$CONF_DIR/xfce4-panel.xml" << EOF
+    # Configure XFCE Panel Layout
+    cat > "$CONF_DIR/xfce4-panel.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
   <property name="panels" type="array">
     <value type="int" value="1"/>
     <property name="panel-1" type="empty">
-      <property name="position" type="string" value="p=6;x=0;y=0"/>
-      <property name="length" type="double" value="80"/>
+      <property name="position" type="string" value="${PANEL_POS}"/>
+      <property name="length" type="double" value="${PANEL_LENGTH}"/>
       <property name="position-locked" type="bool" value="true"/>
-      <property name="size" type="int" value="52"/>
+      <property name="size" type="int" value="${PANEL_SIZE}"/>
       <property name="autohide-behavior" type="int" value="1"/>
-      <property name="background-style" type="int" value="0"/>
       <property name="plugin-ids" type="array">
         <value type="int" value="1"/>
         <value type="int" value="2"/>
@@ -655,13 +694,12 @@ EOF
   </property>
 </channel>
 EOF
-    fi
 
     cat > "$CONF_DIR/xfwm4.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfwm4" version="1.0">
   <property name="general" type="empty">
-    <property name="theme" type="string" value="Orchis-Dark"/>
+    <property name="theme" type="string" value="${THEME_NAME}"/>
     <property name="title_alignment" type="string" value="center"/>
     <property name="button_layout" type="string" value="O|HMC"/>
   </property>
@@ -804,8 +842,38 @@ export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
 EOF
             echo \"export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '\" >> /etc/bash.bashrc
+            
+            # Sync themes and icons from Termux to Distro for consistency
+            mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons
+            
+            # GTK3 Settings for the distro user
+            mkdir -p /home/${PROOT_USER}/.config/gtk-3.0
+            cat > /home/${PROOT_USER}/.config/gtk-3.0/settings.ini << GTKEOF
+[Settings]
+gtk-theme-name=${THEME_NAME}
+gtk-icon-theme-name=${ICON_NAME}
+gtk-font-name=Sans 10
+gtk-cursor-theme-name=Adwaita
+gtk-toolbar-style=GTK_TOOLBAR_ICONS
+gtk-toolbar-icon-size=GTK_ICON_SIZE_LARGE_TOOLBAR
+gtk-button-images=1
+gtk-menu-images=1
+gtk-enable-event-sounds=1
+gtk-enable-input-feedback-sounds=1
+gtk-xft-antialias=1
+gtk-xft-hinting=1
+gtk-xft-hintstyle=hintfull
+GTKEOF
+            chown -R ${PROOT_USER}:${PROOT_USER} /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons /home/${PROOT_USER}/.config
         ") > /dev/null 2>&1 &
         spinner $! "Bootstrapping environment"
+        
+        # Physical copy of themes/icons from Termux to PRoot (run from Termux)
+        # This ensures the distro actually has the files
+        print_status "🎨" "Syncing visual assets to ${PROOT_DISTRO}..."
+        proot-distro login ${PROOT_DISTRO} -- bash -c "mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons"
+        cp -r ~/.themes/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.themes/ 2>/dev/null
+        cp -r ~/.icons/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.icons/ 2>/dev/null
     fi
 
     # Create a wrapper script for easier access and debugging
