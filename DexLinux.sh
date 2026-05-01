@@ -706,12 +706,47 @@ EOF
 </channel>
 EOF
 
+    # Handle Wallpapers
+    draw_line "${YELLOW}⏳${NC} Integrating Wallpapers..."
+    mkdir -p ~/Pictures/Wallpapers
+    if [ -d "./wallpapers" ]; then
+        cp -r ./wallpapers/* ~/Pictures/Wallpapers/ 2>/dev/null
+        draw_line "${GREEN}✓${NC} Local wallpapers copied to ~/Pictures/Wallpapers"
+    fi
+
+    # Determine wallpaper for the selected distro
+    local WP_NAME="Standard"
+    case "$PROOT_DISTRO" in
+        "ubuntu") WP_NAME="Ubuntu" ;;
+        "archlinux") WP_NAME="Arch" ;;
+        "fedora") WP_NAME="Fedora" ;;
+        "debian") WP_NAME="Debian" ;;
+        "deepin") WP_NAME="Deepin" ;;
+    esac
+    
+    local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Distros/${WP_NAME}.png"
+    # Fallback if file doesn't exist
+    [[ ! -f "$WP_PATH" ]] && WP_PATH="/data/data/com.termux/files/usr/share/backgrounds/xfce/xfce-verticals.png"
+
     cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-desktop" version="1.0">
+  <property name="backdrop" type="empty">
+    <property name="screen0" type="empty">
+      <property name="monitor0" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="color-style" type="int" value="0"/>
+          <property name="image-style" type="int" value="5"/>
+          <property name="last-image" type="string" value="${WP_PATH}"/>
+        </property>
+      </property>
+    </property>
+  </property>
   <property name="desktop-icons" type="empty">
     <property name="file-icons" type="empty">
       <property name="show-filesystem" type="bool" value="false"/>
+      <property name="show-home" type="bool" value="true"/>
+      <property name="show-trash" type="bool" value="true"/>
     </property>
   </property>
 </channel>
