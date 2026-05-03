@@ -157,15 +157,13 @@ select_distro() {
     draw_line "${WHITE}2)${NC} Debian ${GRAY}(Stable)${NC}"
     draw_line "${WHITE}3)${NC} Arch Linux ${GRAY}(Bleeding Edge)${NC}"
     draw_line "${WHITE}4)${NC} Fedora ${GRAY}(Workstation)${NC}"
-    draw_line "${WHITE}5)${NC} Deepin ${GRAY}(Beautiful UI)${NC}"
     draw_bottom
     echo ""
-    read -p "  Select option [1-5]: " d_choice < /dev/tty
+    read -p "  Select option [1-4]: " d_choice < /dev/tty
     case $d_choice in
         2) PROOT_DISTRO="debian" ;;
         3) PROOT_DISTRO="archlinux" ;;
         4) PROOT_DISTRO="fedora" ;;
-        5) PROOT_DISTRO="deepin" ;;
         *) PROOT_DISTRO="ubuntu" ;;
     esac
     echo ""
@@ -584,14 +582,6 @@ step_themes() {
             PANEL_POS="p=2;x=0;y=0"
             PANEL_SIZE=36
             ;;
-        "deepin")
-            GTK_COLOR="dark"
-            ICON_REPO="https://github.com/vinceliuice/Fluent-icon-theme.git"
-            ICON_NAME="Fluent-dark"
-            PANEL_POS="p=6;x=0;y=0"
-            PANEL_SIZE=52
-            PANEL_LENGTH=80
-            ;;
         *) # Debian or others
             GTK_COLOR="dark"
             ICON_NAME="Papirus-Dark"
@@ -715,7 +705,6 @@ EOF
         "archlinux") WP_NAME="Arch" ;;
         "fedora") WP_NAME="Fedora" ;;
         "debian") WP_NAME="Debian" ;;
-        "deepin") WP_NAME="Deepin" ;;
     esac
     
     local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Distros/${WP_NAME}.png"
