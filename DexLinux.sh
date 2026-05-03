@@ -708,10 +708,14 @@ EOF
 
     # Handle Wallpapers
     draw_line "${YELLOW}⏳${NC} Integrating Wallpapers..."
-    mkdir -p ~/Pictures/Wallpapers
-    if [ -d "./wallpapers" ]; then
-        cp -r ./wallpapers/* ~/Pictures/Wallpapers/ 2>/dev/null
+    mkdir -p ~/Pictures/Wallpapers/Distros
+    
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -d "${SCRIPT_DIR}/wallpapers" ]; then
+        cp -r "${SCRIPT_DIR}/wallpapers/"* ~/Pictures/Wallpapers/ 2>/dev/null
         draw_line "${GREEN}✓${NC} Local wallpapers copied to ~/Pictures/Wallpapers"
+    else
+        wget -qO ~/Pictures/Wallpapers/Distros/Default.png "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
     fi
 
     # Determine wallpaper for the selected distro
@@ -726,7 +730,12 @@ EOF
     
     local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Distros/${WP_NAME}.png"
     # Fallback if file doesn't exist
-    [[ ! -f "$WP_PATH" ]] && WP_PATH="/data/data/com.termux/files/usr/share/backgrounds/xfce/xfce-verticals.png"
+    if [[ ! -f "$WP_PATH" ]]; then
+        WP_PATH="$(find /data/data/com.termux/files/home/Pictures/Wallpapers -type f -name "*.png" -o -name "*.jpg" | head -n 1)"
+    fi
+    if [[ -z "$WP_PATH" || ! -f "$WP_PATH" ]]; then
+        WP_PATH="/data/data/com.termux/files/usr/share/backgrounds/xfce/xfce-verticals.png"
+    fi
 
     cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -819,14 +828,14 @@ step_proot() {
         # Distro-specific configuration
         local PM_UPDATE="apt update"
         local PM_INSTALL="apt install -y"
-        local PKG_BASE="sudo wget curl git mesa-utils locales"
+        local PKG_BASE="sudo wget curl git mesa-utils locales dialog whiptail nano"
         local PKG_EXTRA=""
         local LOCALE_CONF="update-locale LANG=${SYS_LOCALE}"
 
         if [[ "$PROOT_DISTRO" == "archlinux" ]]; then
             PM_UPDATE="pacman -Syu --noconfirm"
             PM_INSTALL="pacman -S --noconfirm"
-            PKG_BASE="sudo shadow wget curl git mesa-utils"
+            PKG_BASE="sudo shadow wget curl git mesa-utils nano"
             [[ "$INSTALL_EXTRA_APPS" == *"6"* ]] && PKG_EXTRA+=" libreoffice-fresh"
             [[ "$INSTALL_EXTRA_APPS" == *"7"* ]] && PKG_EXTRA+=" inkscape"
             [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
@@ -848,10 +857,9 @@ step_proot() {
         (proot-distro login ${PROOT_DISTRO} -- bash -c "
             ${PM_UPDATE} && ${PM_INSTALL} ${PKG_BASE} ${PKG_EXTRA} > /dev/null 2>&1
             if [[ "$PROOT_DISTRO" != "fedora" ]]; then
-                # Robust locale generation: match with or without space after #
-                sed -i \"s/^#\\s*${SYS_LOCALE}/${SYS_LOCALE}/\" /etc/locale.gen 2>/dev/null || true
-                # Fallback: if not found, append it
-                if ! grep -q \"^${SYS_LOCALE}\" /etc/locale.gen 2>/dev/null; then
+                # Robust locale generation
+                sed -i -E \"s/^#[[:space:]]*(${SYS_LOCALE}[[:space:]]+UTF-8)/\\\\1/\" /etc/locale.gen 2>/dev/null || true
+                if ! grep -q \"^${SYS_LOCALE} \" /etc/locale.gen 2>/dev/null; then
                     echo \"${SYS_LOCALE} UTF-8\" >> /etc/locale.gen
                 fi
                 locale-gen > /dev/null 2>&1
@@ -903,12 +911,12 @@ GTKEOF
         ") > /dev/null 2>&1 &
         spinner $! "Bootstrapping environment"
         
-        # Physical copy of themes/icons from Termux to PRoot (run from Termux)
-        # This ensures the distro actually has the files
+        # Physical copy of themes/icons/wallpapers from Termux to PRoot
         print_status "🎨" "Syncing visual assets to ${PROOT_DISTRO}..."
-        proot-distro login ${PROOT_DISTRO} -- bash -c "mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons"
+        proot-distro login ${PROOT_DISTRO} -- bash -c "mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons /home/${PROOT_USER}/Pictures/Wallpapers"
         cp -r ~/.themes/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.themes/ 2>/dev/null
         cp -r ~/.icons/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.icons/ 2>/dev/null
+        cp -r ~/Pictures/Wallpapers/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/Pictures/Wallpapers/ 2>/dev/null
     fi
 
     # Create a wrapper script for easier access and debugging
@@ -1002,7 +1010,7 @@ GPUEOF
     
     # Customize Termux Prompt to hide u0_aXXX
     sed -i '/export PS1=/d' ~/.bashrc 2>/dev/null
-    echo "export PS1=\"\\[\\e[32m\\]\${USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
+    echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
     
     # Main Launcher
     cat > ~/start-dexlinux.sh << 'LAUNCHEREOF'
