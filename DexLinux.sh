@@ -75,7 +75,7 @@ update_progress() {
     PERCENT=$((CURRENT_STEP * 100 / TOTAL_STEPS))
     
     echo ""
-    echo -e "  ${CYAN}⟪${NC} ${BOLD}PASSO ${CURRENT_STEP}/${TOTAL_STEPS}${NC} ${GRAY}•${NC} ${GREEN}${PERCENT}% CONCLUÍDO${NC} ${CYAN}⟫${NC}"
+    echo -e "  ${CYAN}⟪${NC} ${BOLD}STEP ${CURRENT_STEP}/${TOTAL_STEPS}${NC} ${GRAY}•${NC} ${GREEN}${PERCENT}% COMPLETE${NC} ${CYAN}⟫${NC}"
     echo ""
 }
 # Spinner animation for running tasks
