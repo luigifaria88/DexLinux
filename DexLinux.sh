@@ -19,9 +19,14 @@ INSTALL_EXTRA_APPS="1"
 
 INSTALL_PROOT=false
 PROOT_DISTRO="ubuntu"
+PROOT_USER="dex"
 HAS_ROOT=false
 SYS_LOCALE="en_US.UTF-8"
 SYS_KBD="us"
+
+# Theme variables (set in step_themes, used in step_proot)
+SELECTED_THEME_NAME=""
+SELECTED_ICON_NAME=""
 
 # Auto-detect terminal width for UI
 TERM_COLS=$(tput cols 2>/dev/null || stty size 2>/dev/null | awk '{print $2}')
@@ -295,8 +300,8 @@ show_maintenance_menu() {
                 echo ""
                 read -p "  Enter distro name to remove (or leave empty to cancel): " d_remove < /dev/tty
                 if [[ -n "$d_remove" ]]; then
-                    spinner_pid=$( (proot-distro remove "$d_remove") > /dev/null 2>&1 & echo $! )
-                    spinner $spinner_pid "Removing $d_remove..."
+                    (proot-distro remove "$d_remove") > /dev/null 2>&1 &
+                    spinner $! "Removing $d_remove..."
                     rm -f ~/Desktop/"$(echo $d_remove | sed 's/./\U&/')".desktop 2>/dev/null
                 fi
                 ;;
@@ -394,7 +399,8 @@ check_environment() {
     fi
     
     # Check Architecture
-    if [ "$CPU_ABI" != "arm64-v8a" ]; then
+    local cpu_abi_check=$(getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r')
+    if [[ -n "$cpu_abi_check" ]] && [ "$cpu_abi_check" != "arm64-v8a" ]; then
         print_status "⚠️" "Warning: Non-arm64 architecture might have performance issues."
     fi
     
@@ -484,6 +490,7 @@ step_x11() {
     
     install_pkg "termux-x11-nightly" "Display Server"
     install_pkg "xorg-xrandr" "XRandR Utility"
+    install_pkg "xorg-xsetxkbmap" "Keyboard Layout Tool"
     draw_bottom
 }
 # ============== STEP 4: INSTALL DESKTOP ==============
@@ -560,6 +567,7 @@ step_themes() {
     local PANEL_POS="p=10;x=0;y=0" # Default Left (Ubuntu-style)
     local PANEL_SIZE=48
     local PANEL_LENGTH=100
+    local THEME_NAME=""
 
     case "$PROOT_DISTRO" in
         "ubuntu")
@@ -590,8 +598,12 @@ step_themes() {
             ;;
     esac
 
-    local THEME_NAME="Orchis-${GTK_COLOR}-Dark"
+    THEME_NAME="Orchis-${GTK_COLOR}-Dark"
     [[ "$GTK_COLOR" == "dark" ]] && THEME_NAME="Orchis-Dark"
+    
+    # Export for use by step_proot
+    SELECTED_THEME_NAME="$THEME_NAME"
+    SELECTED_ICON_NAME="$ICON_NAME"
 
     draw_line "${YELLOW}⏳${NC} Cloning Orchis Theme (${GTK_COLOR})..."
     T_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/orchis-theme"
@@ -950,8 +962,8 @@ EOF
             mkdir -p /home/${PROOT_USER}/.config/gtk-3.0
             cat > /home/${PROOT_USER}/.config/gtk-3.0/settings.ini << GTKEOF
 [Settings]
-gtk-theme-name=${THEME_NAME}
-gtk-icon-theme-name=${ICON_NAME}
+gtk-theme-name=${SELECTED_THEME_NAME}
+gtk-icon-theme-name=${SELECTED_ICON_NAME}
 gtk-font-name=Sans 10
 gtk-cursor-theme-name=Adwaita
 gtk-toolbar-style=GTK_TOOLBAR_ICONS
@@ -1027,7 +1039,7 @@ echo "Set a password for your Termux background session (optional):"
 passwd
 echo ""
 echo "Optimizing display scaling..."
-xfconf-query -c xsettings -p /Gdk/WindowScalingFactor -s 1 --create 2>/dev/null
+xfconf-query -c xsettings -p /Gdk/WindowScalingFactor -s 1 --create -t int 2>/dev/null
 echo ""
 echo "✅ All set! Enjoy your Mobile Linux Desktop."
 echo "Press Enter to close this window."
@@ -1068,14 +1080,14 @@ GPUEOF
     sed -i '/export PS1=/d' ~/.bashrc 2>/dev/null
     echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
     
-    # Main Launcher
-    cat > ~/start-dexlinux.sh << 'LAUNCHEREOF'
+    # Main Launcher (NOT single-quoted so variables expand)
+    cat > ~/start-dexlinux.sh << LAUNCHEREOF
 #!/data/data/com.termux/files/usr/bin/bash
 echo ""
 echo "🚀 Starting DexLinux Desktop..."
 export USER="${PROOT_USER:-dex}"
 export LOGNAME="${PROOT_USER:-dex}"
-export XDG_RUNTIME_DIR=${TMPDIR:-/data/data/com.termux/files/usr/tmp}
+export XDG_RUNTIME_DIR=\${TMPDIR:-/data/data/com.termux/files/usr/tmp}
 source ~/.config/dexlinux-gpu.sh 2>/dev/null
 pkill -9 -f "termux.x11" 2>/dev/null
 pkill -9 -f "xfce" 2>/dev/null
@@ -1087,23 +1099,22 @@ pulseaudio --start --exit-idle-time=-1
 sleep 1
 pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1 2>/dev/null
 export PULSE_SERVER=127.0.0.1
-rm -rf $XDG_RUNTIME_DIR/.X11-unix/X0 2>/dev/null
+rm -rf \$XDG_RUNTIME_DIR/.X11-unix/X0 2>/dev/null
 am start -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1
 sleep 1
 termux-x11 :0 -ac > ~/x11.log 2>&1 &
 MAX_TRIES=60
 COUNT=0
-while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
+while [ ! -e \$XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ \$COUNT -lt \$MAX_TRIES ]; do
     sleep 0.5
-    COUNT=$((COUNT + 1))
+    COUNT=\$((COUNT + 1))
 done
 export DISPLAY=:0
-setxkbmap DEX_KBD_PLACEHOLDER 2>/dev/null
+setxkbmap ${SYS_KBD} 2>/dev/null
 # Apply theme settings in background after XFCE starts
 bash ~/dexlinux-apply-theme.sh &
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
-    sed -i "s/DEX_KBD_PLACEHOLDER/${SYS_KBD}/g" ~/start-dexlinux.sh
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
     
