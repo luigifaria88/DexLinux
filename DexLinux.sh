@@ -756,6 +756,77 @@ EOF
   </property>
 </channel>
 EOF
+
+    # Disable session saving so XFCE always reads our XML configs fresh
+    mkdir -p "$HOME/.config/xfce4"
+    cat > "$HOME/.config/xfce4/xfce4-session.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-session" version="1.0">
+  <property name="general" type="empty">
+    <property name="SaveOnExit" type="bool" value="false"/>
+  </property>
+</channel>
+EOF
+
+    # Create the reliable apply-theme script that runs AFTER XFCE is up
+    cat > ~/dexlinux-apply-theme.sh << THEMEAPPLYEOF
+#!/data/data/com.termux/files/usr/bin/bash
+# DexLinux Theme Applicator - runs after XFCE is fully loaded
+sleep 3
+
+# GTK Theme & Icons
+xfconf-query -c xsettings -p /Net/ThemeName -s "${THEME_NAME}" --create -t string 2>/dev/null
+xfconf-query -c xsettings -p /Net/IconThemeName -s "${ICON_NAME}" --create -t string 2>/dev/null
+xfconf-query -c xsettings -p /Net/CursorThemeName -s "Adwaita" --create -t string 2>/dev/null
+xfconf-query -c xsettings -p /Gtk/DecorationLayout -s "close,minimize,maximize:" --create -t string 2>/dev/null
+
+# Window Manager Theme
+xfconf-query -c xfwm4 -p /general/theme -s "${THEME_NAME}" --create -t string 2>/dev/null
+xfconf-query -c xfwm4 -p /general/title_alignment -s "center" --create -t string 2>/dev/null
+xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" --create -t string 2>/dev/null
+
+# Panel
+xfconf-query -c xfce4-panel -p /panels -s 1 --create -t int -a 2>/dev/null
+xfconf-query -c xfce4-panel -p /panels/panel-1/position -s "${PANEL_POS}" --create -t string 2>/dev/null
+xfconf-query -c xfce4-panel -p /panels/panel-1/position-locked -s true --create -t bool 2>/dev/null
+xfconf-query -c xfce4-panel -p /panels/panel-1/size -s ${PANEL_SIZE} --create -t uint 2>/dev/null
+xfconf-query -c xfce4-panel -p /panels/panel-1/length -s ${PANEL_LENGTH} --create -t double 2>/dev/null
+
+# Wallpaper - detect the actual monitor name
+MONITOR_NAME=\$(xrandr 2>/dev/null | grep " connected" | head -n1 | cut -d' ' -f1)
+[[ -z "\$MONITOR_NAME" ]] && MONITOR_NAME="Virtual-1"
+
+WP="${WP_PATH}"
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/image-style -s 5 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/color-style -s 0 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/image-style -s 5 --create -t int 2>/dev/null
+
+# Power manager
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-enabled -s false --create -t bool 2>/dev/null
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/presentation-mode -s true --create -t bool 2>/dev/null
+
+# Session - disable save on exit
+xfconf-query -c xfce4-session -p /general/SaveOnExit -s false --create -t bool 2>/dev/null
+THEMEAPPLYEOF
+    chmod +x ~/dexlinux-apply-theme.sh
+    draw_line "${GREEN}✓${NC} Theme applicator script created"
+
+    # Autostart entry so theme is reapplied on each boot
+    mkdir -p ~/.config/autostart
+    cat > ~/.config/autostart/dexlinux-theme.desktop << 'AUTOEOF'
+[Desktop Entry]
+Type=Application
+Name=DexLinux Theme
+Exec=bash /data/data/com.termux/files/home/dexlinux-apply-theme.sh
+Hidden=false
+NoDisplay=true
+X-XFCE-Autostart-Override=true
+AUTOEOF
+
     draw_bottom
 }
 # ============== STEP 10: INSTALL BROWSERS & APPS ==============
@@ -1028,6 +1099,8 @@ while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
 done
 export DISPLAY=:0
 setxkbmap DEX_KBD_PLACEHOLDER 2>/dev/null
+# Apply theme settings in background after XFCE starts
+bash ~/dexlinux-apply-theme.sh &
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
     sed -i "s/DEX_KBD_PLACEHOLDER/${SYS_KBD}/g" ~/start-dexlinux.sh
