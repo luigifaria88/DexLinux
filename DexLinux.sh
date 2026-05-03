@@ -648,6 +648,9 @@ step_themes() {
     fi
 
     draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
+    pkill -9 -f xfconfd 2>/dev/null
+    pkill -9 -f xfce4 2>/dev/null
+    rm -rf ~/.cache/sessions/* 2>/dev/null
     CONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
     mkdir -p "$CONF_DIR"
     
@@ -675,7 +678,7 @@ EOF
       <property name="position" type="string" value="${PANEL_POS}"/>
       <property name="length" type="double" value="${PANEL_LENGTH}"/>
       <property name="position-locked" type="bool" value="true"/>
-      <property name="size" type="int" value="${PANEL_SIZE}"/>
+      <property name="size" type="uint" value="${PANEL_SIZE}"/>
       <property name="autohide-behavior" type="int" value="1"/>
       <property name="plugin-ids" type="array">
         <value type="int" value="1"/>
@@ -747,6 +750,13 @@ EOF
   <property name="backdrop" type="empty">
     <property name="screen0" type="empty">
       <property name="monitor0" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="color-style" type="int" value="0"/>
+          <property name="image-style" type="int" value="5"/>
+          <property name="last-image" type="string" value="${WP_PATH}"/>
+        </property>
+      </property>
+      <property name="monitorVirtual-1" type="empty">
         <property name="workspace0" type="empty">
           <property name="color-style" type="int" value="0"/>
           <property name="image-style" type="int" value="5"/>
