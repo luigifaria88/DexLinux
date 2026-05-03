@@ -1002,8 +1002,6 @@ export MESA_LOADER_DRIVER_OVERRIDE=zink
 export TU_DEBUG=noconform
 export MESA_VK_WSI_PRESENT_MODE=immediate
 export ZINK_DESCRIPTORS=lazy
-export LANG=DEX_LANG_PLACEHOLDER
-export LC_ALL=DEX_LANG_PLACEHOLDER
 export XDG_DATA_DIRS=/data/data/com.termux/files/usr/share:${XDG_DATA_DIRS}
 export XDG_CONFIG_DIRS=/data/data/com.termux/files/usr/etc/xdg:${XDG_CONFIG_DIRS}
 GPUEOF
@@ -1047,14 +1045,10 @@ while [ ! -e $XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ $COUNT -lt $MAX_TRIES ]; do
     COUNT=$((COUNT + 1))
 done
 export DISPLAY=:0
-export LANG=DEX_LANG_PLACEHOLDER
-export LC_ALL=DEX_LANG_PLACEHOLDER
 setxkbmap DEX_KBD_PLACEHOLDER 2>/dev/null
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
     sed -i "s/DEX_KBD_PLACEHOLDER/${SYS_KBD}/g" ~/start-dexlinux.sh
-    sed -i "s/DEX_LANG_PLACEHOLDER/${SYS_LOCALE}/g" ~/start-dexlinux.sh
-    sed -i "s/DEX_LANG_PLACEHOLDER/${SYS_LOCALE}/g" ~/.config/dexlinux-gpu.sh
     chmod +x ~/start-dexlinux.sh
     draw_line "${GREEN}✓${NC} Created ~/start-dexlinux.sh"
     
