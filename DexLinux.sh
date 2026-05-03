@@ -24,13 +24,13 @@ SYS_LOCALE="en_US.UTF-8"
 SYS_KBD="us"
 
 # Auto-detect terminal width for UI
-TERM_COLS=$(tput cols 2>/dev/null || echo 45)
+TERM_COLS=$(tput cols 2>/dev/null || stty size 2>/dev/null | awk '{print $2}')
 # Ensure a minimum width to prevent UI breakage
-[[ -z "$TERM_COLS" || "$TERM_COLS" -lt 40 ]] && TERM_COLS=40
+[[ -z "$TERM_COLS" || "$TERM_COLS" -lt 30 ]] && TERM_COLS=30
 # Apply a slight margin
-BOX_WIDTH=$((TERM_COLS - 2))
-# Cap at 80 characters for ultra-wide screens to keep it readable
-[[ "$BOX_WIDTH" -gt 80 ]] && BOX_WIDTH=80
+BOX_WIDTH=$((TERM_COLS - 4))
+# Cap at 76 characters for ultra-wide screens to keep it readable
+[[ "$BOX_WIDTH" -gt 76 ]] && BOX_WIDTH=76
 
 # ============== COLORS (Fluent Palette) ==============
 RED='\033[38;2;255;95;95m'
@@ -74,9 +74,13 @@ update_progress() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
     PERCENT=$((CURRENT_STEP * 100 / TOTAL_STEPS))
     
-    local box_width=${BOX_WIDTH:-45}
-    local bar_width=$(( box_width - 28 ))
-    [[ $bar_width -lt 10 ]] && bar_width=10
+    local cols=$(tput cols 2>/dev/null || stty size 2>/dev/null | awk '{print $2}')
+    [[ -z "$cols" || "$cols" -lt 30 ]] && cols=30
+    local box_width=$(( cols - 4 ))
+    [[ "$box_width" -gt 76 ]] && box_width=76
+    
+    local bar_width=$(( box_width - 24 ))
+    [[ $bar_width -lt 5 ]] && bar_width=5
     
     local filled=$(( PERCENT * bar_width / 100 ))
     local empty=$(( bar_width - filled ))
@@ -88,7 +92,7 @@ update_progress() {
     bar+="${NC}"
     
     echo ""
-    printf "  ${WHITE}📊 PROGRESS: ${BOLD}%3d%%${NC} [%b] ${GRAY}%2d/%2d${NC}\n" "$PERCENT" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS"
+    printf "  ${WHITE}PROGRESS: ${BOLD}%3d%%${NC} [%b] ${GRAY}%2d/%2d${NC}\n" "$PERCENT" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS"
     echo ""
 }
 # Spinner animation for running tasks
@@ -136,8 +140,8 @@ install_pkg() {
 # ============== BANNER ==============
 show_banner() {
     clear
-    TERM_COLS=$(tput cols 2>/dev/null || echo 45)
-    [[ "$TERM_COLS" -lt 40 ]] && TERM_COLS=40
+    TERM_COLS=$(tput cols 2>/dev/null || stty size 2>/dev/null | awk '{print $2}')
+    [[ -z "$TERM_COLS" || "$TERM_COLS" -lt 30 ]] && TERM_COLS=30
     BOX_WIDTH=$((TERM_COLS - 4))
     [[ "$BOX_WIDTH" -gt 76 ]] && BOX_WIDTH=76
 
