@@ -74,25 +74,8 @@ update_progress() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
     PERCENT=$((CURRENT_STEP * 100 / TOTAL_STEPS))
     
-    local cols=$(tput cols 2>/dev/null || stty size 2>/dev/null | awk '{print $2}')
-    [[ -z "$cols" || "$cols" -lt 30 ]] && cols=30
-    local box_width=$(( cols - 4 ))
-    [[ "$box_width" -gt 76 ]] && box_width=76
-    
-    local bar_width=$(( box_width - 24 ))
-    [[ $bar_width -lt 5 ]] && bar_width=5
-    
-    local filled=$(( PERCENT * bar_width / 100 ))
-    local empty=$(( bar_width - filled ))
-    
-    local bar="${GREEN}"
-    for ((i=0; i<filled; i++)); do bar+="━"; done
-    bar+="${GRAY}"
-    for ((i=0; i<empty; i++)); do bar+="─"; done
-    bar+="${NC}"
-    
     echo ""
-    printf "  ${WHITE}PROGRESS: ${BOLD}%3d%%${NC} [%b] ${GRAY}%2d/%2d${NC}\n" "$PERCENT" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS"
+    echo -e "  ${CYAN}⟪${NC} ${BOLD}PASSO ${CURRENT_STEP}/${TOTAL_STEPS}${NC} ${GRAY}•${NC} ${GREEN}${PERCENT}% CONCLUÍDO${NC} ${CYAN}⟫${NC}"
     echo ""
 }
 # Spinner animation for running tasks
