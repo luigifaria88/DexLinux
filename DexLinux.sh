@@ -918,9 +918,10 @@ GTKEOF
         # Physical copy of themes/icons/wallpapers from Termux to PRoot
         print_status "🎨" "Syncing visual assets to ${PROOT_DISTRO}..."
         proot-distro login ${PROOT_DISTRO} -- bash -c "mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons /home/${PROOT_USER}/Pictures/Wallpapers"
-        cp -r ~/.themes/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.themes/ 2>/dev/null
-        cp -r ~/.icons/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/.icons/ 2>/dev/null
-        cp -r ~/Pictures/Wallpapers/* $(proot-distro info ${PROOT_DISTRO} | grep "rootfs:" | awk '{print $2}')/home/${PROOT_USER}/Pictures/Wallpapers/ 2>/dev/null
+        ROOTFS_PATH="/data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/${PROOT_DISTRO}"
+        cp -r ~/.themes/* "${ROOTFS_PATH}/home/${PROOT_USER}/.themes/" 2>/dev/null
+        cp -r ~/.icons/* "${ROOTFS_PATH}/home/${PROOT_USER}/.icons/" 2>/dev/null
+        cp -r ~/Pictures/Wallpapers/* "${ROOTFS_PATH}/home/${PROOT_USER}/Pictures/Wallpapers/" 2>/dev/null
     fi
 
     # Create a wrapper script for easier access and debugging
