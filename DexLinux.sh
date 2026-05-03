@@ -490,7 +490,7 @@ step_x11() {
     
     install_pkg "termux-x11-nightly" "Display Server"
     install_pkg "xorg-xrandr" "XRandR Utility"
-    install_pkg "xorg-xsetxkbmap" "Keyboard Layout Tool"
+    install_pkg "xorg-setxkbmap" "Keyboard Layout Tool"
     draw_bottom
 }
 # ============== STEP 4: INSTALL DESKTOP ==============
@@ -784,7 +784,17 @@ EOF
     cat > ~/dexlinux-apply-theme.sh << THEMEAPPLYEOF
 #!/data/data/com.termux/files/usr/bin/bash
 # DexLinux Theme Applicator - runs after XFCE is fully loaded
-sleep 3
+export DISPLAY=:0
+
+# Wait until xfconfd is running (max 30 seconds)
+TRIES=0
+while ! pgrep -x xfconfd > /dev/null 2>&1; do
+    sleep 1
+    TRIES=\\$((TRIES + 1))
+    [ \\$TRIES -ge 30 ] && exit 1
+done
+# Extra settle time for XFCE to finish initializing
+sleep 5
 
 # GTK Theme & Icons
 xfconf-query -c xsettings -p /Net/ThemeName -s "${THEME_NAME}" --create -t string 2>/dev/null
@@ -797,8 +807,7 @@ xfconf-query -c xfwm4 -p /general/theme -s "${THEME_NAME}" --create -t string 2>
 xfconf-query -c xfwm4 -p /general/title_alignment -s "center" --create -t string 2>/dev/null
 xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" --create -t string 2>/dev/null
 
-# Panel
-xfconf-query -c xfce4-panel -p /panels -s 1 --create -t int -a 2>/dev/null
+# Panel - configure
 xfconf-query -c xfce4-panel -p /panels/panel-1/position -s "${PANEL_POS}" --create -t string 2>/dev/null
 xfconf-query -c xfce4-panel -p /panels/panel-1/position-locked -s true --create -t bool 2>/dev/null
 xfconf-query -c xfce4-panel -p /panels/panel-1/size -s ${PANEL_SIZE} --create -t uint 2>/dev/null
@@ -823,6 +832,11 @@ xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/presentation-mode -s
 
 # Session - disable save on exit
 xfconf-query -c xfce4-session -p /general/SaveOnExit -s false --create -t bool 2>/dev/null
+
+# Force XFCE components to reload with the new settings
+xfce4-panel -r 2>/dev/null &
+pkill -HUP xfdesktop 2>/dev/null
+xfwm4 --replace 2>/dev/null &
 THEMEAPPLYEOF
     chmod +x ~/dexlinux-apply-theme.sh
     draw_line "${GREEN}✓${NC} Theme applicator script created"
