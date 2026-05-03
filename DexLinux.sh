@@ -1213,8 +1213,9 @@ step_shortcuts() {
     
     mkdir -p ~/Desktop
     
-    # Firefox
-    cat > ~/Desktop/Firefox.desktop << 'EOF'
+    # Firefox (only if selected)
+    if [[ "$INSTALL_EXTRA_APPS" == *"1"* ]]; then
+        cat > ~/Desktop/Firefox.desktop << 'EOF'
 [Desktop Entry]
 Name=Firefox
 Comment=Web Browser
@@ -1223,6 +1224,7 @@ Icon=firefox
 Type=Application
 Categories=Network;WebBrowser;
 EOF
+    fi
     
     # Display Settings
     cat > ~/Desktop/Resolution.desktop << 'EOF'
