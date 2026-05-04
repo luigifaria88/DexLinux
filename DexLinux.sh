@@ -352,9 +352,9 @@ check_environment() {
         else
             print_status "⚠️" "Android 12+ detected."
             draw_line "    ${GRAY}Disable Phantom Killer (via adb):${NC}"
-            draw_line "    ${CYAN}adb shell device_config put \\${NC}"
-            draw_line "    ${CYAN}activity_manager \\${NC}"
-            draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
+            draw_line "    ${CYAN}adb shell device_config put \\"
+            draw_line "    activity_manager \\"
+            draw_line "    max_phantom_processes 2147483647${NC}"
         fi
     else
         print_status "✅" "Android ${ANDROID_VERSION:-Unknown} compatibility: OK"
