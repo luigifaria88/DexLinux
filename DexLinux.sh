@@ -441,6 +441,8 @@ step_repos() {
     install_pkg "sassc" "Sass Compiler"
     install_pkg "tar" "Tar Utility"
     install_pkg "file" "File Utility"
+    install_pkg "glib-bin" "GLib Binaries"
+    install_pkg "bc" "Calculator"
     draw_bottom
 }
 # ============== STEP 3: INSTALL TERMUX-X11 ==============
@@ -597,8 +599,7 @@ xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/presentation-mode -s
 # Session - disable save on exit
 xfconf-query -c xfce4-session -p /general/SaveOnExit -s false --create -t bool 2>/dev/null
 
-# Force XFCE to re-evaluate the background (safe reload)
-xfdesktop --reload 2>/dev/null
+
 THEMEAPPLYEOF
     chmod +x ~/dexlinux-apply-theme.sh
     draw_line "${GREEN}✓${NC} Theme applicator script created"
@@ -719,6 +720,7 @@ ${LOCALE_CONF}
 
 echo "export LANG=${SYS_LOCALE}" >> /etc/profile
 echo "export LC_ALL=${SYS_LOCALE}" >> /etc/profile
+echo "export GTK_THEME=${SELECTED_THEME_NAME}" >> /etc/profile
 cat >> /etc/profile << 'PROFILEDEX'
 # DEXLINUX_CONFIG_START
 export USER=\$(whoami)
