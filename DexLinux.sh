@@ -122,7 +122,7 @@ install_pkg() {
     local pkg=$1
     local name=${2:-$pkg}
     
-    (yes | pkg install $pkg -y) > /dev/null 2>&1 &
+    (pkg install -y $pkg) > /dev/null 2>&1 &
     spinner $! "Installing ${name}..."
 }
 # ============== BANNER ==============
@@ -171,11 +171,7 @@ select_distro() {
         4) PROOT_DISTRO="fedora" ;;
         *) PROOT_DISTRO="ubuntu" ;;
     esac
-    echo ""
-    read -p "  Enter a username for the Distro (default: dex): " PROOT_USER < /dev/tty
-    [[ -z "$PROOT_USER" ]] && PROOT_USER="dex"
-    
-    print_status "✅" "Selected: ${WHITE}${BOLD}${PROOT_DISTRO}${NC} (User: ${PROOT_USER})"
+    print_status "✅" "Selected: ${WHITE}${BOLD}${PROOT_DISTRO}${NC}"
     echo ""
 }
 select_extra_apps() {
@@ -390,10 +386,15 @@ check_environment() {
     [[ -z "$ANDROID_MAJOR" ]] && ANDROID_MAJOR=0
 
     if [ "$ANDROID_MAJOR" -ge 12 ]; then
-        print_status "⚠️" "Android 12+ detected."
-        draw_line "    ${GRAY}Disable Phantom Process Killer:${NC}"
-        draw_line "    ${CYAN}device_config put activity_manager ${NC}\\"
-        draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
+        if [ "$HAS_ROOT" == "true" ]; then
+            print_status "⚡" "Android 12+ detected. Auto-fixing Phantom Process Killer..."
+            su -c "device_config put activity_manager max_phantom_processes 2147483647" >/dev/null 2>&1 || true
+        else
+            print_status "⚠️" "Android 12+ detected."
+            draw_line "    ${GRAY}To disable Phantom Process Killer (via adb):${NC}"
+            draw_line "    ${CYAN}adb shell device_config put activity_manager \\${NC}"
+            draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
+        fi
     else
         print_status "✅" "Android ${ANDROID_VERSION:-Unknown} compatibility: OK"
     fi
@@ -865,26 +866,27 @@ step_proot() {
             [[ "$INSTALL_EXTRA_APPS" == *"8"* ]] && PKG_EXTRA+=" btop"
         fi
 
-        (proot-distro login ${PROOT_DISTRO} -- bash -c "
-            ${PM_UPDATE} && ${PM_INSTALL} ${PKG_BASE} ${PKG_EXTRA} > /dev/null 2>&1
-            if [[ "$PROOT_DISTRO" != "fedora" ]]; then
-                # Robust locale generation
-                sed -i -E \"s/^#[[:space:]]*(${SYS_LOCALE}[[:space:]]+UTF-8)/\\\\1/\" /etc/locale.gen 2>/dev/null || true
-                if ! grep -q \"^${SYS_LOCALE} \" /etc/locale.gen 2>/dev/null; then
-                    echo \"${SYS_LOCALE} UTF-8\" >> /etc/locale.gen
-                fi
-                locale-gen > /dev/null 2>&1
-            fi
-            ${LOCALE_CONF}
-            if ! id -u ${PROOT_USER} >/dev/null 2>&1; then
-                useradd -m -s /bin/bash ${PROOT_USER}
-                mkdir -p /etc/sudoers.d
-                echo '${PROOT_USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${PROOT_USER}
-                chmod 0440 /etc/sudoers.d/${PROOT_USER}
-            fi
-            echo \"export LANG=${SYS_LOCALE}\" >> /etc/profile
-            echo \"export LC_ALL=${SYS_LOCALE}\" >> /etc/profile
-            cat >> /etc/profile << 'EOF'
+        ROOTFS_PATH="/data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/${PROOT_DISTRO}"
+        mkdir -p "${ROOTFS_PATH}/root"
+
+        # Create a bootstrap script inside the rootfs
+        cat > "${ROOTFS_PATH}/root/bootstrap.sh" << EOF
+#!/bin/bash
+${PM_UPDATE} > /dev/null 2>&1
+${PM_INSTALL} ${PKG_BASE} ${PKG_EXTRA} > /dev/null 2>&1
+
+if [ "${PROOT_DISTRO}" != "fedora" ]; then
+    sed -i -E "s/^#[[:space:]]*(${SYS_LOCALE}[[:space:]]+UTF-8)/\\\\1/" /etc/locale.gen 2>/dev/null || true
+    if ! grep -q "^${SYS_LOCALE} " /etc/locale.gen 2>/dev/null; then
+        echo "${SYS_LOCALE} UTF-8" >> /etc/locale.gen
+    fi
+    locale-gen > /dev/null 2>&1
+fi
+${LOCALE_CONF}
+
+echo "export LANG=${SYS_LOCALE}" >> /etc/profile
+echo "export LC_ALL=${SYS_LOCALE}" >> /etc/profile
+cat >> /etc/profile << 'PROFILEDEX'
 # DEXLINUX_CONFIG_START
 export USER=\$(whoami)
 export LOGNAME=\$USER
@@ -894,15 +896,15 @@ export GALLIUM_DRIVER=zink
 export MESA_LOADER_DRIVER_OVERRIDE=zink
 export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
-EOF
-            echo \"export PS1='\\[\\e[32m\\]\\u\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ '\" >> /etc/bash.bashrc
-            
-            # Sync themes and icons from Termux to Distro for consistency
-            mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons
-            
-            # GTK3 Settings for the distro user
-            mkdir -p /home/${PROOT_USER}/.config/gtk-3.0
-            cat > /home/${PROOT_USER}/.config/gtk-3.0/settings.ini << GTKEOF
+PROFILEDEX
+
+# Sync themes and icons using symlinks (saves space and keeps it live)
+mkdir -p /root/.config/gtk-3.0 /root/Pictures
+ln -sf /data/data/com.termux/files/home/.themes /root/.themes
+ln -sf /data/data/com.termux/files/home/.icons /root/.icons
+ln -sf /data/data/com.termux/files/home/Pictures/Wallpapers /root/Pictures/Wallpapers
+
+cat > /root/.config/gtk-3.0/settings.ini << GTKEOF
 [Settings]
 gtk-theme-name=${SELECTED_THEME_NAME}
 gtk-icon-theme-name=${SELECTED_ICON_NAME}
@@ -918,17 +920,13 @@ gtk-xft-antialias=1
 gtk-xft-hinting=1
 gtk-xft-hintstyle=hintfull
 GTKEOF
-            chown -R ${PROOT_USER}:${PROOT_USER} /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons /home/${PROOT_USER}/.config
-        ") > /dev/null 2>&1 &
+
+rm -f /root/bootstrap.sh
+EOF
+
+        chmod +x "${ROOTFS_PATH}/root/bootstrap.sh"
+        (proot-distro login ${PROOT_DISTRO} -- bash /root/bootstrap.sh) > /dev/null 2>&1 &
         spinner $! "Bootstrapping environment"
-        
-        # Physical copy of themes/icons/wallpapers from Termux to PRoot
-        print_status "🎨" "Syncing visual assets to ${PROOT_DISTRO}..."
-        proot-distro login ${PROOT_DISTRO} -- bash -c "mkdir -p /home/${PROOT_USER}/.themes /home/${PROOT_USER}/.icons /home/${PROOT_USER}/Pictures/Wallpapers"
-        ROOTFS_PATH="/data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/${PROOT_DISTRO}"
-        cp -r ~/.themes/* "${ROOTFS_PATH}/home/${PROOT_USER}/.themes/" 2>/dev/null
-        cp -r ~/.icons/* "${ROOTFS_PATH}/home/${PROOT_USER}/.icons/" 2>/dev/null
-        cp -r ~/Pictures/Wallpapers/* "${ROOTFS_PATH}/home/${PROOT_USER}/Pictures/Wallpapers/" 2>/dev/null
     fi
 
     # Create a wrapper script for easier access and debugging
@@ -936,7 +934,7 @@ GTKEOF
 #!/data/data/com.termux/files/usr/bin/bash
 export DISPLAY=:0
 source ~/.config/dexlinux-gpu.sh
-proot-distro login ${PROOT_DISTRO} --user ${PROOT_USER}
+proot-distro login ${PROOT_DISTRO}
 EOF
     chmod +x ~/dexlinux-shell-${PROOT_DISTRO}.sh
 
@@ -1018,39 +1016,42 @@ GPUEOF
         echo 'source ~/.config/dexlinux-gpu.sh 2>/dev/null' >> ~/.bashrc
     fi
     
-    # Customize Termux Prompt to hide u0_aXXX
-    sed -i '/export PS1=/d' ~/.bashrc 2>/dev/null
-    echo "export PS1=\"\\[\\e[32m\\]${PROOT_USER:-dex}\\[\\e[m\\]@\\[\\e[34m\\]dexlinux\\[\\e[m\\]:\\[\\e[36m\\]\\w\\[\\e[m\\]\\$ \"" >> ~/.bashrc
-    
-    # Main Launcher (NOT single-quoted so variables expand)
     cat > ~/start-dexlinux.sh << LAUNCHEREOF
 #!/data/data/com.termux/files/usr/bin/bash
 echo ""
 echo "🚀 Starting DexLinux Desktop..."
-export USER="${PROOT_USER:-dex}"
-export LOGNAME="${PROOT_USER:-dex}"
 export XDG_RUNTIME_DIR=\${TMPDIR:-/data/data/com.termux/files/usr/tmp}
 source ~/.config/dexlinux-gpu.sh 2>/dev/null
-pkill -9 -f "termux.x11" 2>/dev/null
-pkill -9 -f "xfce" 2>/dev/null
-pkill -9 -f "dbus" 2>/dev/null
-unset PULSE_SERVER
-pulseaudio --kill 2>/dev/null
+
+# Clean previous sessions gracefully
+for proc in "termux.x11" "xfce" "dbus"; do
+    pkill -f "\$proc" 2>/dev/null
+done
 sleep 0.5
-pulseaudio --start --exit-idle-time=-1
-sleep 1
-pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1 2>/dev/null
+for proc in "termux.x11" "xfce" "dbus"; do
+    pkill -9 -f "\$proc" 2>/dev/null
+done
+
+unset PULSE_SERVER
+if ! pulseaudio --check; then
+    pulseaudio --start --exit-idle-time=-1
+    sleep 1
+fi
+pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1 2>/dev/null || true
 export PULSE_SERVER=127.0.0.1
+
 rm -rf \$XDG_RUNTIME_DIR/.X11-unix/X0 2>/dev/null
 am start -n com.termux.x11/com.termux.x11.MainActivity > /dev/null 2>&1
 sleep 1
 termux-x11 :0 -ac > ~/x11.log 2>&1 &
+
 MAX_TRIES=60
 COUNT=0
 while [ ! -e \$XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ \$COUNT -lt \$MAX_TRIES ]; do
     sleep 0.5
     COUNT=\$((COUNT + 1))
 done
+
 export DISPLAY=:0
 setxkbmap ${SYS_KBD} 2>/dev/null
 exec startxfce4 > /dev/null 2>&1
@@ -1123,10 +1124,13 @@ TOOLSEOF
 
     cat > ~/stop-dexlinux.sh << 'STOPEOF'
 #!/data/data/com.termux/files/usr/bin/bash
-pkill -9 -f "termux.x11" 2>/dev/null
-pkill -9 -f "pulseaudio" 2>/dev/null
-pkill -9 -f "xfce" 2>/dev/null
-pkill -9 -f "dbus" 2>/dev/null
+for proc in "termux.x11" "pulseaudio" "xfce" "dbus"; do
+    pkill -f "$proc" 2>/dev/null
+done
+sleep 1
+for proc in "termux.x11" "pulseaudio" "xfce" "dbus"; do
+    pkill -9 -f "$proc" 2>/dev/null
+done
 STOPEOF
     chmod +x ~/stop-dexlinux.sh
     draw_bottom
