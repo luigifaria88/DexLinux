@@ -657,6 +657,7 @@ EOF
     cat > "$CONF_DIR/xfce4-panel.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
   <property name="panels" type="array">
     <value type="int" value="1"/>
     <property name="panel-1" type="empty">
@@ -769,17 +770,8 @@ EOF
 </channel>
 EOF
 
-    # Disable session saving so XFCE always reads our XML configs fresh
-    mkdir -p "$HOME/.config/xfce4"
-    cat > "$HOME/.config/xfce4/xfce4-session.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-session" version="1.0">
-  <property name="general" type="empty">
-    <property name="SaveOnExit" type="bool" value="false"/>
-  </property>
-</channel>
-EOF
-
+    # Disable session saving is handled by xfconf-query in the applicator script.
+    
     # Create the reliable apply-theme script that runs AFTER XFCE is up
     cat > ~/dexlinux-apply-theme.sh << THEMEAPPLYEOF
 #!/data/data/com.termux/files/usr/bin/bash
@@ -788,7 +780,7 @@ export DISPLAY=:0
 
 # Wait until xfconfd is running (max 30 seconds)
 TRIES=0
-while ! pgrep -x xfconfd > /dev/null 2>&1; do
+while ! pgrep xfconfd > /dev/null 2>&1; do
     sleep 1
     TRIES=\\$((TRIES + 1))
     [ \\$TRIES -ge 30 ] && exit 1
@@ -1125,8 +1117,6 @@ while [ ! -e \$XDG_RUNTIME_DIR/.X11-unix/X0 ] && [ \$COUNT -lt \$MAX_TRIES ]; do
 done
 export DISPLAY=:0
 setxkbmap ${SYS_KBD} 2>/dev/null
-# Apply theme settings in background after XFCE starts
-bash ~/dexlinux-apply-theme.sh &
 exec startxfce4 > /dev/null 2>&1
 LAUNCHEREOF
     chmod +x ~/start-dexlinux.sh
