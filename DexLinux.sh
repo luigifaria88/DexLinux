@@ -541,7 +541,7 @@ step_themes() {
     if git clone --depth 1 https://github.com/vinceliuice/Orchis-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
         find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-        bash install.sh -d ~/.themes -c "$GTK_COLOR" -t dark > ~/.dexlinux-theme.log 2>&1
+        bash install.sh -d ~/.themes -c dark > ~/.dexlinux-theme.log 2>&1
         # Force GTK visibility in all possible directories
         mkdir -p ~/.local/share/themes /data/data/com.termux/files/usr/share/themes
         cp -rL ~/.themes/Orchis* ~/.local/share/themes/ 2>/dev/null || true
