@@ -550,27 +550,7 @@ step_themes() {
     # We let XFCE generate its primary default configuration on first boot.
     # This prevents any formatting errors, crashes, or missing backgrounds.
     
-    # Handle Wallpapers
-    draw_line "${YELLOW}⏳${NC} Integrating Wallpapers..."
-    mkdir -p ~/Pictures/Wallpapers/Distros
-    
-    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -d "${SCRIPT_DIR}/wallpapers" ]; then
-        cp -r "${SCRIPT_DIR}/wallpapers/"* ~/Pictures/Wallpapers/ 2>/dev/null
-        draw_line "${GREEN}✓${NC} Local wallpapers copied to ~/Pictures/Wallpapers"
-    else
-        wget -qO ~/Pictures/Wallpapers/Distros/Default.png "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
-    fi
 
-    local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Default.png"
-    # Fallback if file doesn't exist
-    if [[ ! -f "$WP_PATH" ]]; then
-        WP_PATH="$(find /data/data/com.termux/files/home/Pictures/Wallpapers -type f -name "*.png" -o -name "*.jpg" | head -n 1)"
-    fi
-    if [[ -z "$WP_PATH" || ! -f "$WP_PATH" ]]; then
-        WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Default.png"
-        wget -qO "$WP_PATH" "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
-    fi
 
     # Session saving and theme properties are handled entirely by xfconf-query in the applicator script.
     
@@ -603,23 +583,7 @@ xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" --create -t string 2>
 
 # Panel config remains default XFCE
 
-# Wallpaper - detect the actual monitor name
-MONITOR_NAME=\$(xrandr 2>/dev/null | grep " connected" | head -n1 | cut -d' ' -f1)
-[[ -z "\$MONITOR_NAME" ]] && MONITOR_NAME="Virtual-1"
 
-WP="${WP_PATH}"
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/image-style -s 5 --create -t int 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/color-style -s 0 --create -t int 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
-
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
-
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/image-style -s 5 --create -t int 2>/dev/null
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
 
 # Desktop Icons
 xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-filesystem -s false --create -t bool 2>/dev/null
@@ -767,11 +731,10 @@ export TU_DEBUG=noconform
 # DEXLINUX_CONFIG_END
 PROFILEDEX
 
-# Sync themes and icons using symlinks (saves space and keeps it live)
-mkdir -p /root/.config/gtk-3.0 /root/Pictures
-ln -sf /data/data/com.termux/files/home/.themes /root/.themes
-ln -sf /data/data/com.termux/files/home/.icons /root/.icons
-ln -sf /data/data/com.termux/files/home/Pictures/Wallpapers /root/Pictures/Wallpapers
+# Sync themes and icons to global paths so all apps can access them natively
+mkdir -p /root/.config/gtk-3.0 /usr/share/themes /usr/share/icons
+cp -rL /data/data/com.termux/files/home/.themes/* /usr/share/themes/ 2>/dev/null || true
+cp -rL /data/data/com.termux/files/home/.icons/* /usr/share/icons/ 2>/dev/null || true
 
 cat > /root/.config/gtk-3.0/settings.ini << GTKEOF
 [Settings]
