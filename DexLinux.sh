@@ -346,12 +346,14 @@ check_environment() {
 
     if [ "$ANDROID_MAJOR" -ge 12 ]; then
         if [ "$HAS_ROOT" == "true" ]; then
-            print_status "⚡" "Android 12+ detected. Auto-fixing Phantom Process Killer..."
+            print_status "⚡" "Android 12+ detected."
+            draw_line "    ${GRAY}Auto-fixing Phantom Process Killer...${NC}"
             su -c "device_config put activity_manager max_phantom_processes 2147483647" >/dev/null 2>&1 || true
         else
             print_status "⚠️" "Android 12+ detected."
-            draw_line "    ${GRAY}To disable Phantom Process Killer (via adb):${NC}"
-            draw_line "    ${CYAN}adb shell device_config put activity_manager \\${NC}"
+            draw_line "    ${GRAY}Disable Phantom Killer (via adb):${NC}"
+            draw_line "    ${CYAN}adb shell device_config put \\${NC}"
+            draw_line "    ${CYAN}activity_manager \\${NC}"
             draw_line "    ${CYAN}max_phantom_processes 2147483647${NC}"
         fi
     else
