@@ -21,12 +21,12 @@
 
 ## 📦 Supported PRoot Distributions
 
-| Distro | Package Manager | Notes |
-| :--- | :--- | :--- |
-| **Ubuntu** | apt | Recommended — full locale & theme support |
-| **Debian** | apt | Stable alternative with same setup path |
-| **Arch Linux** | pacman | Bleeding edge — `shadow` package for user mgmt |
-| **Fedora** | dnf | Workstation — `glibc-all-langpacks` for locales |
+| Distro         | Package Manager | Notes                                           |
+| :------------- | :-------------- | :---------------------------------------------- |
+| **Ubuntu**     | apt             | Recommended — full locale & theme support       |
+| **Debian**     | apt             | Stable alternative with same setup path         |
+| **Arch Linux** | pacman          | Bleeding edge — `shadow` package for user mgmt  |
+| **Fedora**     | dnf             | Workstation — `glibc-all-langpacks` for locales |
 
 > All PRoot distributions receive automatic theme/icon synchronization, GPU environment variables, locale configuration, and GTK settings injection.
 
@@ -36,17 +36,17 @@
 
 The interactive app selector allows toggling each application individually:
 
-| # | Application | Package | Category |
-| :--- | :--- | :--- | :--- |
-| 1 | **Firefox** | `firefox` | Browser (default selected) |
-| 2 | **Chromium** | `chromium` | Browser |
-| 3 | **VS Code** | `code-oss` | Editor |
-| 4 | **GIMP** | `gimp` | Image Editor |
-| 5 | **VLC** | `vlc` | Media Player |
-| 6 | **LibreOffice** | `libreoffice` | Office Suite (PRoot only) |
-| 7 | **Inkscape** | `inkscape` | Vector Graphics |
-| 8 | **btop** | `btop` | System Monitor |
-| 9 | **Wine + Box64** | `wine-stable` + `box64` | Windows App Emulation |
+| #   | Application      | Package                 | Category                   |
+| :-- | :--------------- | :---------------------- | :------------------------- |
+| 1   | **Firefox**      | `firefox`               | Browser (default selected) |
+| 2   | **Chromium**     | `chromium`              | Browser                    |
+| 3   | **VS Code**      | `code-oss`              | Editor                     |
+| 4   | **GIMP**         | `gimp`                  | Image Editor               |
+| 5   | **VLC**          | `vlc`                   | Media Player               |
+| 6   | **LibreOffice**  | `libreoffice`           | Office Suite (PRoot only)  |
+| 7   | **Inkscape**     | `inkscape`              | Vector Graphics            |
+| 8   | **btop**         | `btop`                  | System Monitor             |
+| 9   | **Wine + Box64** | `wine-stable` + `box64` | Windows App Emulation      |
 
 > LibreOffice (option 6) is installed inside the PRoot environment when selected. Inkscape and btop are installed in both Termux and PRoot when applicable.
 
@@ -62,12 +62,12 @@ curl -sL https://raw.githubusercontent.com/luigifaria88/DexLinux/main/DexLinux.s
 
 ### Installation Modes
 
-| Mode | Description | Extra Apps | PRoot |
-| :--- | :--- | :--- | :--- |
-| **1) Full** | Complete experience with all extras | Prompted | Yes (select distro) |
-| **2) Minimal** | Core XFCE desktop only — maximum performance | None | No |
-| **3) Custom** | Hand-pick apps and choose whether to enable PRoot | Interactive toggle | Optional |
-| **M) Maintenance** | Access maintenance tools without reinstalling | — | — |
+| Mode               | Description                                       | Extra Apps         | PRoot               |
+| :----------------- | :------------------------------------------------ | :----------------- | :------------------ |
+| **1) Full**        | Complete experience with all extras               | Prompted           | Yes (select distro) |
+| **2) Minimal**     | Core XFCE desktop only — maximum performance      | None               | No                  |
+| **3) Custom**      | Hand-pick apps and choose whether to enable PRoot | Interactive toggle | Optional            |
+| **M) Maintenance** | Access maintenance tools without reinstalling     | —                  | —                   |
 
 ---
 
@@ -75,20 +75,22 @@ curl -sL https://raw.githubusercontent.com/luigifaria88/DexLinux/main/DexLinux.s
 
 After installation, use these commands in Termux or the shortcuts on your desktop:
 
-| Command | Description |
-| :--- | :--- |
-| `bash ~/start-dexlinux.sh` | Start the desktop session |
-| `bash ~/stop-dexlinux.sh` | Gracefully stop the desktop and all services |
-| `bash ~/dex-res.sh` | Change screen resolution |
-| `bash ~/dex-tools.sh` | Open quick tools menu |
-| `bash ~/dexlinux-shell-<distro>.sh` | Open a PRoot shell for the installed distro |
+| Command                             | Description                                  |
+| :---------------------------------- | :------------------------------------------- |
+| `bash ~/start-dexlinux.sh`          | Start the desktop session                    |
+| `bash ~/stop-dexlinux.sh`           | Gracefully stop the desktop and all services |
+| `bash ~/dex-res.sh`                 | Change screen resolution                     |
+| `bash ~/dex-tools.sh`               | Open quick tools menu                        |
+| `bash ~/dexlinux-shell-<distro>.sh` | Open a PRoot shell for the installed distro  |
 
 ### Launching Procedure
+
 1. Open the **Termux:X11** application.
 2. Return to **Termux** and run `bash ~/start-dexlinux.sh`.
 3. Switch back to **Termux:X11** and enjoy!
 
 ### Desktop Shortcuts Created
+
 - **Firefox** (if selected) — browser launcher
 - **Display Settings** — resolution changer
 - **DexTools** — quick system tools
@@ -102,12 +104,12 @@ After installation, use these commands in Termux or the shortcuts on your deskto
 
 Accessible via option `M` from the main menu:
 
-| Option | Action |
-| :--- | :--- |
-| **1) Remove Distribution** | List and remove installed PRoot distros |
-| **2) Clean Package Cache** | Run `pkg clean` + `apt autoremove` to free space |
+| Option                      | Action                                                       |
+| :-------------------------- | :----------------------------------------------------------- |
+| **1) Remove Distribution**  | List and remove installed PRoot distros                      |
+| **2) Clean Package Cache**  | Run `pkg clean` + `apt autoremove` to free space             |
 | **3) Fix XFCE Permissions** | Repair executable permissions on start scripts and shortcuts |
-| **4) Reset Resolution** | Delete saved resolution config (safe mode) |
+| **4) Reset Resolution**     | Delete saved resolution config (safe mode)                   |
 
 ---
 
@@ -115,25 +117,13 @@ Accessible via option `M` from the main menu:
 
 DexLinux auto-detects your GPU hardware and configures the optimal driver stack:
 
-| GPU Type | Driver | Detection Method |
-| :--- | :--- | :--- |
-| **Adreno** | Freedreno (Turnip) | `ro.hardware.egl` or brand-based heuristic |
+| GPU Type       | Driver               | Detection Method                                    |
+| :------------- | :------------------- | :-------------------------------------------------- |
+| **Adreno**     | Freedreno (Turnip)   | `ro.hardware.egl` or brand-based heuristic          |
 | **Mali / ARM** | Zink (System Vulkan) | EGL vendor or brand detection (Huawei, Honor, etc.) |
-| **PowerVR** | Zink (System Vulkan) | EGL vendor detection |
-| **Other HW** | Zink (System Vulkan) | Fallback for unrecognized hardware GPUs |
-| **Software** | SwRast (LLVMPipe) | Last resort fallback |
-
-Environment variables applied globally:
-```
-MESA_NO_ERROR=1
-MESA_GL_VERSION_OVERRIDE=4.6
-MESA_GLES_VERSION_OVERRIDE=3.2
-GALLIUM_DRIVER=zink
-MESA_LOADER_DRIVER_OVERRIDE=zink
-TU_DEBUG=noconform
-MESA_VK_WSI_PRESENT_MODE=immediate
-ZINK_DESCRIPTORS=lazy
-```
+| **PowerVR**    | Zink (System Vulkan) | EGL vendor detection                                |
+| **Other HW**   | Zink (System Vulkan) | Fallback for unrecognized hardware GPUs             |
+| **Software**   | SwRast (LLVMPipe)    | Last resort fallback                                |
 
 ---
 
@@ -144,6 +134,7 @@ ZINK_DESCRIPTORS=lazy
 - **Termux:Widget**: (Optional) For Android home screen shortcuts.
 
 ### 🛡️ Android 12+ (Phantom Process Killer)
+
 On Android 12 and newer, the system aggressively kills background processes (like your Linux session). DexLinux handles this automatically if your device is **rooted**.
 
 For **non-rooted** devices, you **must** run these commands via ADB:
@@ -151,8 +142,8 @@ For **non-rooted** devices, you **must** run these commands via ADB:
 1.  **Enable Developer Options**: Go to `Settings > About Phone` and tap `Build Number` 7 times.
 2.  **Enable USB Debugging**: In `Developer Options`, turn on `USB Debugging`.
 3.  **Run from a PC (ADB)**:
-    *   Download **Android Platform Tools**: [Windows](https://dl.google.com/android/repository/platform-tools-latest-windows.zip) | [Mac](https://dl.google.com/android/repository/platform-tools-latest-darwin.zip) | [Linux](https://dl.google.com/android/repository/platform-tools-latest-linux.zip)
-    *   Extract the ZIP and run:
+    - Download **Android Platform Tools**: [Windows](https://dl.google.com/android/repository/platform-tools-latest-windows.zip) | [Mac](https://dl.google.com/android/repository/platform-tools-latest-darwin.zip) | [Linux](https://dl.google.com/android/repository/platform-tools-latest-linux.zip)
+    - Extract the ZIP and run:
     ```bash
     adb shell "/system/bin/device_config set_sync_disabled_for_tests persistent"
     adb shell "/system/bin/device_config put activity_manager max_phantom_processes 2147483647"
@@ -165,6 +156,7 @@ For **non-rooted** devices, you **must** run these commands via ADB:
 ---
 
 ## 🤝 Credits & Acknowledgements
+
 - **Themes**: [Orchis](https://github.com/vinceliuice/Orchis-theme) by Vinceliuice.
 - **Icons**: [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) by Papirus Development Team.
 - **Core**: Built on the amazing work of the Termux and Termux-X11 communities.
