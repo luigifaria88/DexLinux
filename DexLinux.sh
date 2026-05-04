@@ -825,10 +825,8 @@ xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/presentation-mode -s
 # Session - disable save on exit
 xfconf-query -c xfce4-session -p /general/SaveOnExit -s false --create -t bool 2>/dev/null
 
-# Force XFCE components to reload with the new settings
-xfce4-panel -r 2>/dev/null &
-pkill -HUP xfdesktop 2>/dev/null
-xfwm4 --replace 2>/dev/null &
+# Force XFCE to re-evaluate the background (safe reload)
+xfdesktop --reload 2>/dev/null
 THEMEAPPLYEOF
     chmod +x ~/dexlinux-apply-theme.sh
     draw_line "${GREEN}✓${NC} Theme applicator script created"
