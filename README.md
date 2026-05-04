@@ -16,7 +16,6 @@
 - **🔧 Maintenance Menu**: Built-in tools to remove distros, clean cache, fix permissions, and reset display resolution.
 - **📐 Resolution Manager**: Quick resolution changer with presets (Native, 720p, 900p, 1080p, Zoom+, Zoom−).
 - **🧰 Quick Tools**: Integrated utility menu for desktop control, resolution management, and GPU status checks.
-- **🔔 First Run Wizard**: One-time setup assistant on first boot for password configuration and display scaling.
 
 ---
 
