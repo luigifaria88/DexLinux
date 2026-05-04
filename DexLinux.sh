@@ -560,46 +560,10 @@ step_themes() {
     install_pkg "papirus-icon-theme" "Papirus Icons"
     mkdir -p ~/.themes ~/.icons
     
-    # Determine Distro-Specific Aesthetics
+    # Standard Aesthetics
     local GTK_COLOR="dark"
-    local ICON_REPO=""
+    local THEME_NAME="Orchis-Dark"
     local ICON_NAME="Papirus-Dark"
-    local PANEL_POS="p=10;x=0;y=0" # Default Left (Ubuntu-style)
-    local PANEL_SIZE=48
-    local PANEL_LENGTH=100
-    local THEME_NAME=""
-
-    case "$PROOT_DISTRO" in
-        "ubuntu")
-            GTK_COLOR="orange"
-            ICON_NAME="Papirus-Dark"
-            PANEL_POS="p=10;x=0;y=0"
-            PANEL_SIZE=48
-            ;;
-        "archlinux")
-            GTK_COLOR="grey"
-            ICON_REPO="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
-            ICON_NAME="WhiteSur-dark"
-            PANEL_POS="p=2;x=0;y=0"
-            PANEL_SIZE=32
-            ;;
-        "fedora")
-            GTK_COLOR="blue"
-            ICON_REPO="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
-            ICON_NAME="WhiteSur-dark"
-            PANEL_POS="p=2;x=0;y=0"
-            PANEL_SIZE=36
-            ;;
-        *) # Debian or others
-            GTK_COLOR="dark"
-            ICON_NAME="Papirus-Dark"
-            PANEL_POS="p=6;x=0;y=0"
-            PANEL_SIZE=38
-            ;;
-    esac
-
-    THEME_NAME="Orchis-${GTK_COLOR}-Dark"
-    [[ "$GTK_COLOR" == "dark" ]] && THEME_NAME="Orchis-Dark"
     
     # Export for use by step_proot
     SELECTED_THEME_NAME="$THEME_NAME"
@@ -618,21 +582,7 @@ step_themes() {
     fi
     rm -rf "$T_DIR"
 
-    if [[ -n "$ICON_REPO" ]]; then
-        draw_line "${YELLOW}⏳${NC} Installing Custom Icons for ${PROOT_DISTRO}..."
-        I_DIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}/extra-icons"
-        rm -rf "$I_DIR"
-        if git clone --depth 1 "$ICON_REPO" "$I_DIR" > /dev/null 2>&1; then
-            cd "$I_DIR"
-            find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-            bash install.sh -d ~/.icons > /dev/null 2>&1
-            draw_line "${GREEN}✓${NC} Icons installed"
-            cd - > /dev/null
-        fi
-        rm -rf "$I_DIR"
-    fi
-
-    draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
+    # Icons are already handled by papirus-icon-theme package    draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
     pkill -9 -f xfconfd 2>/dev/null
     pkill -9 -f xfce4 2>/dev/null
     rm -rf ~/.cache/sessions/* 2>/dev/null
@@ -699,16 +649,7 @@ EOF
         wget -qO ~/Pictures/Wallpapers/Distros/Default.png "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
     fi
 
-    # Determine wallpaper for the selected distro
-    local WP_NAME="Standard"
-    case "$PROOT_DISTRO" in
-        "ubuntu") WP_NAME="Ubuntu" ;;
-        "archlinux") WP_NAME="Arch" ;;
-        "fedora") WP_NAME="Fedora" ;;
-        "debian") WP_NAME="Debian" ;;
-    esac
-    
-    local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Distros/${WP_NAME}.png"
+    local WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Default.png"
     # Fallback if file doesn't exist
     if [[ ! -f "$WP_PATH" ]]; then
         WP_PATH="$(find /data/data/com.termux/files/home/Pictures/Wallpapers -type f -name "*.png" -o -name "*.jpg" | head -n 1)"
@@ -800,11 +741,7 @@ xfconf-query -c xfwm4 -p /general/theme -s "${THEME_NAME}" --create -t string 2>
 xfconf-query -c xfwm4 -p /general/title_alignment -s "center" --create -t string 2>/dev/null
 xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" --create -t string 2>/dev/null
 
-# Panel - configure
-xfconf-query -c xfce4-panel -p /panels/panel-1/position -s "${PANEL_POS}" --create -t string 2>/dev/null
-xfconf-query -c xfce4-panel -p /panels/panel-1/position-locked -s true --create -t bool 2>/dev/null
-xfconf-query -c xfce4-panel -p /panels/panel-1/size -s ${PANEL_SIZE} --create -t uint 2>/dev/null
-xfconf-query -c xfce4-panel -p /panels/panel-1/length -s ${PANEL_LENGTH} --create -t double 2>/dev/null
+# Panel config remains default XFCE
 
 # Wallpaper - detect the actual monitor name
 MONITOR_NAME=\$(xrandr 2>/dev/null | grep " connected" | head -n1 | cut -d' ' -f1)
