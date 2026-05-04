@@ -227,54 +227,13 @@ select_extra_apps() {
     echo ""
 }
 
-select_language() {
-    echo ""
-    draw_box "Language & Keyboard"
-    draw_line "${WHITE}1)${NC} English ${GRAY}(en_US)${NC}"
-    draw_line "${WHITE}2)${NC} Portuguese ${GRAY}(pt_PT)${NC}"
-    draw_line "${WHITE}3)${NC} Portuguese (BR) ${GRAY}(pt_BR)${NC}"
-    draw_line "${WHITE}4)${NC} Spanish ${GRAY}(es_ES)${NC}"
-    draw_line "${WHITE}5)${NC} French ${GRAY}(fr_FR)${NC}"
-    draw_line "${WHITE}6)${NC} German ${GRAY}(de_DE)${NC}"
-    draw_bottom
-    echo ""
-    read -p "  Select option [1-6]: " l_choice < /dev/tty
-    case $l_choice in
-        2) 
-            SYS_LOCALE="pt_PT.UTF-8"
-            SYS_KBD="pt"
-            ;;
-        3) 
-            SYS_LOCALE="pt_BR.UTF-8"
-            SYS_KBD="br"
-            ;;
-        4) 
-            SYS_LOCALE="es_ES.UTF-8"
-            SYS_KBD="es"
-            ;;
-        5) 
-            SYS_LOCALE="fr_FR.UTF-8"
-            SYS_KBD="fr"
-            ;;
-        6) 
-            SYS_LOCALE="de_DE.UTF-8"
-            SYS_KBD="de"
-            ;;
-        *) 
-            SYS_LOCALE="en_US.UTF-8"
-            SYS_KBD="us"
-            ;;
-    esac
-    echo ""
-    print_status "✅" "Language: ${WHITE}${BOLD}${SYS_LOCALE}${NC} | Keyboard: ${WHITE}${BOLD}${SYS_KBD}${NC}"
-    echo ""
-}
+
 
 # ============== MAINTENANCE MENU ==============
 show_maintenance_menu() {
     while true; do
         show_banner
-        draw_box "Maintenance & System Tools"
+        draw_box "Maintenance Menu"
         draw_line "${PURPLE}1)${NC} Remove a Distribution ${GRAY}(Arch, Fedora, etc)${NC}"
         draw_line "${PURPLE}2)${NC} Clean Package Cache ${GRAY}(Free up space)${NC}"
         draw_line "${PURPLE}3)${NC} Fix XFCE Permissions ${GRAY}(Repair start-up)${NC}"
@@ -322,6 +281,7 @@ show_maintenance_menu() {
 
 # ============== SELECTION MENU ==============
 show_menu() {
+    show_banner
     draw_box "Installation Mode"
     draw_line "${CYAN}1)${NC} ${BOLD}Full Installation${NC} ${GRAY}(All Apps + Distro)${NC}"
     draw_line "${CYAN}2)${NC} ${BOLD}Minimal Installation${NC} ${GRAY}(Core Desktop Only)${NC}"
@@ -334,7 +294,8 @@ show_menu() {
     case $mode_choice in
         [Mm])
             show_maintenance_menu
-            exit 0
+            show_menu
+            return
             ;;
         1)
             INSTALL_PROOT=true
@@ -364,8 +325,6 @@ show_menu() {
             TOTAL_STEPS=14
             ;;
     esac
-    
-    select_language
 }
 # ============== ROOT DETECTION ==============
 check_root() {
@@ -587,57 +546,10 @@ step_themes() {
     pkill -9 -f xfconfd 2>/dev/null
     pkill -9 -f xfce4 2>/dev/null
     rm -rf ~/.cache/sessions/* 2>/dev/null
-    CONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
-    mkdir -p "$CONF_DIR"
+    # We NO LONGER manually create XML files here. 
+    # We let XFCE generate its primary default configuration on first boot.
+    # This prevents any formatting errors, crashes, or missing backgrounds.
     
-    cat > "$CONF_DIR/xsettings.xml" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xsettings" version="1.0">
-  <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="${THEME_NAME}"/>
-    <property name="IconThemeName" type="string" value="${ICON_NAME}"/>
-    <property name="CursorThemeName" type="string" value="Adwaita"/>
-  </property>
-  <property name="Gtk" type="empty">
-    <property name="DecorationLayout" type="string" value="close,minimize,maximize:"/>
-  </property>
-</channel>
-EOF
-
-    # Configure XFCE Panel Layout (Use system default as base to prevent crashes)
-    if [ -f /data/data/com.termux/files/usr/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml ]; then
-        cp /data/data/com.termux/files/usr/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml "$CONF_DIR/xfce4-panel.xml"
-    else
-        # Fallback to creating a minimal valid panel config
-        cat > "$CONF_DIR/xfce4-panel.xml" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-panel" version="1.0">
-  <property name="configver" type="int" value="2"/>
-  <property name="panels" type="array">
-    <value type="int" value="1"/>
-    <property name="panel-1" type="empty">
-      <property name="position" type="string" value="${PANEL_POS}"/>
-      <property name="length" type="double" value="${PANEL_LENGTH}"/>
-      <property name="position-locked" type="bool" value="true"/>
-      <property name="size" type="uint" value="${PANEL_SIZE}"/>
-      <property name="autohide-behavior" type="int" value="1"/>
-    </property>
-  </property>
-</channel>
-EOF
-    fi
-
-    cat > "$CONF_DIR/xfwm4.xml" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfwm4" version="1.0">
-  <property name="general" type="empty">
-    <property name="theme" type="string" value="${THEME_NAME}"/>
-    <property name="title_alignment" type="string" value="center"/>
-    <property name="button_layout" type="string" value="O|HMC"/>
-  </property>
-</channel>
-EOF
-
     # Handle Wallpapers
     draw_line "${YELLOW}⏳${NC} Integrating Wallpapers..."
     mkdir -p ~/Pictures/Wallpapers/Distros
@@ -660,60 +572,7 @@ EOF
         wget -qO "$WP_PATH" "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
     fi
 
-    cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-desktop" version="1.0">
-  <property name="backdrop" type="empty">
-    <property name="screen0" type="empty">
-      <property name="monitor0" type="empty">
-        <property name="workspace0" type="empty">
-          <property name="color-style" type="int" value="0"/>
-          <property name="image-style" type="int" value="5"/>
-          <property name="last-image" type="string" value="${WP_PATH}"/>
-          <property name="rgba1" type="array">
-            <value type="double" value="0.1"/>
-            <value type="double" value="0.1"/>
-            <value type="double" value="0.1"/>
-            <value type="double" value="1.0"/>
-          </property>
-        </property>
-      </property>
-      <property name="monitorVirtual-1" type="empty">
-        <property name="workspace0" type="empty">
-          <property name="color-style" type="int" value="0"/>
-          <property name="image-style" type="int" value="5"/>
-          <property name="last-image" type="string" value="${WP_PATH}"/>
-          <property name="rgba1" type="array">
-            <value type="double" value="0.1"/>
-            <value type="double" value="0.1"/>
-            <value type="double" value="0.1"/>
-            <value type="double" value="1.0"/>
-          </property>
-        </property>
-      </property>
-    </property>
-  </property>
-  <property name="desktop-icons" type="empty">
-    <property name="file-icons" type="empty">
-      <property name="show-filesystem" type="bool" value="false"/>
-      <property name="show-home" type="bool" value="true"/>
-      <property name="show-trash" type="bool" value="true"/>
-    </property>
-  </property>
-</channel>
-EOF
-
-    cat > "$CONF_DIR/xfce4-power-manager.xml" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfce4-power-manager" version="1.0">
-  <property name="xfce4-power-manager" type="empty">
-    <property name="dpms-enabled" type="bool" value="false"/>
-    <property name="presentation-mode" type="bool" value="true"/>
-  </property>
-</channel>
-EOF
-
-    # Disable session saving is handled by xfconf-query in the applicator script.
+    # Session saving and theme properties are handled entirely by xfconf-query in the applicator script.
     
     # Create the reliable apply-theme script that runs AFTER XFCE is up
     cat > ~/dexlinux-apply-theme.sh << THEMEAPPLYEOF
@@ -752,10 +611,20 @@ WP="${WP_PATH}"
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/image-style -s 5 --create -t int 2>/dev/null
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/color-style -s 0 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor\${MONITOR_NAME}/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
+
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style -s 5 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
+
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/last-image -s "\${WP}" --create -t string 2>/dev/null
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/image-style -s 5 --create -t int 2>/dev/null
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorVirtual-1/workspace0/rgba1 -s 0.1 -s 0.1 -s 0.1 -s 1.0 -t double -t double -t double -t double --create 2>/dev/null
+
+# Desktop Icons
+xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-filesystem -s false --create -t bool 2>/dev/null
+xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-home -s true --create -t bool 2>/dev/null
+xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-trash -s true --create -t bool 2>/dev/null
 
 # Power manager
 xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-enabled -s false --create -t bool 2>/dev/null
@@ -1212,7 +1081,6 @@ show_completion() {
 }
 # ============== MAIN INSTALLATION ==============
 main() {
-    show_banner
     show_menu
     
     echo ""
