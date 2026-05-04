@@ -445,6 +445,7 @@ step_repos() {
     install_pkg "file" "File Utility"
     install_pkg "glib" "GLib Binaries"
     install_pkg "bc" "Calculator"
+    install_pkg "optipng" "PNG Optimizer"
     draw_bottom
 }
 # ============== STEP 3: INSTALL TERMUX-X11 ==============
@@ -540,7 +541,12 @@ step_themes() {
     if git clone --depth 1 https://github.com/vinceliuice/Orchis-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
         find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-        bash install.sh -d /data/data/com.termux/files/usr/share/themes -c "$GTK_COLOR" -t dark > /dev/null 2>&1
+        bash install.sh -d ~/.themes -c "$GTK_COLOR" -t dark > ~/.dexlinux-theme.log 2>&1
+        # Force GTK visibility in all possible directories
+        mkdir -p ~/.local/share/themes /data/data/com.termux/files/usr/share/themes
+        cp -rL ~/.themes/Orchis* ~/.local/share/themes/ 2>/dev/null || true
+        cp -rL ~/.themes/Orchis* /data/data/com.termux/files/usr/share/themes/ 2>/dev/null || true
+        
         draw_line "${GREEN}✓${NC} Orchis ${GTK_COLOR} installed"
         cd - > /dev/null
     fi
@@ -733,7 +739,7 @@ PROFILEDEX
 
 # Sync themes and icons to global paths so all apps can access them natively
 mkdir -p /root/.config/gtk-3.0 /usr/share/themes /usr/share/icons
-cp -rL /data/data/com.termux/files/usr/share/themes/Orchis* /usr/share/themes/ 2>/dev/null || true
+cp -rL /data/data/com.termux/files/home/.themes/Orchis* /usr/share/themes/ 2>/dev/null || true
 # Icons are symlinked for speed, since Papirus has thousands of files and GTK reads symlinked icons perfectly
 for icon_dir in /data/data/com.termux/files/usr/share/icons/Papirus*; do
     [ -e "$icon_dir" ] && ln -sf "$icon_dir" /usr/share/icons/
