@@ -738,7 +738,10 @@ PROFILEDEX
 # Sync themes and icons to global paths so all apps can access them natively
 mkdir -p /root/.config/gtk-3.0 /usr/share/themes /usr/share/icons
 cp -rL /data/data/com.termux/files/usr/share/themes/Orchis* /usr/share/themes/ 2>/dev/null || true
-cp -rL /data/data/com.termux/files/usr/share/icons/Papirus* /usr/share/icons/ 2>/dev/null || true
+# Icons are symlinked for speed, since Papirus has thousands of files and GTK reads symlinked icons perfectly
+for icon_dir in /data/data/com.termux/files/usr/share/icons/Papirus*; do
+    [ -e "$icon_dir" ] && ln -sf "$icon_dir" /usr/share/icons/
+done
 
 cat > /root/.config/gtk-3.0/settings.ini << GTKEOF
 [Settings]
