@@ -546,77 +546,73 @@ step_themes() {
     fi
     rm -rf "$T_DIR"
 
-    # Icons are already handled by papirus-icon-theme package    draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
+    # Icons are already handled by papirus-icon-theme package
+    draw_line "${YELLOW}⏳${NC} Applying XFCE configuration..."
     pkill -9 -f xfconfd 2>/dev/null
     pkill -9 -f xfce4 2>/dev/null
     rm -rf ~/.cache/sessions/* 2>/dev/null
-    # We NO LONGER manually create XML files here. 
-    # We let XFCE generate its primary default configuration on first boot.
-    # This prevents any formatting errors, crashes, or missing backgrounds.
-    
 
+    CONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+    mkdir -p "$CONF_DIR"
+    cat > "$CONF_DIR/xsettings.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName" type="string" value="${THEME_NAME}"/>
+    <property name="IconThemeName" type="string" value="${ICON_NAME}"/>
+    <property name="CursorThemeName" type="string" value="Adwaita"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="DecorationLayout" type="string" value="close,minimize,maximize:"/>
+  </property>
+</channel>
+EOF
 
-    # Session saving and theme properties are handled entirely by xfconf-query in the applicator script.
-    
-    # Create the reliable apply-theme script that runs AFTER XFCE is up
-    cat > ~/dexlinux-apply-theme.sh << THEMEAPPLYEOF
-#!/data/data/com.termux/files/usr/bin/bash
-# DexLinux Theme Applicator - runs after XFCE is fully loaded
-export DISPLAY=:0
+    cat > "$CONF_DIR/xfwm4.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="theme" type="string" value="${THEME_NAME}"/>
+    <property name="title_alignment" type="string" value="center"/>
+    <property name="button_layout" type="string" value="O|HMC"/>
+  </property>
+</channel>
+EOF
 
-# Wait until xfconfd is running (max 30 seconds)
-TRIES=0
-while ! pgrep xfconfd > /dev/null 2>&1; do
-    sleep 1
-    TRIES=\\$((TRIES + 1))
-    [ \\$TRIES -ge 30 ] && exit 1
-done
-# Extra settle time for XFCE to finish initializing
-sleep 5
+    cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-desktop" version="1.0">
+  <property name="desktop-icons" type="empty">
+    <property name="file-icons" type="empty">
+      <property name="show-filesystem" type="bool" value="false"/>
+      <property name="show-home" type="bool" value="true"/>
+      <property name="show-trash" type="bool" value="true"/>
+    </property>
+  </property>
+</channel>
+EOF
 
-# GTK Theme & Icons
-xfconf-query -c xsettings -p /Net/ThemeName -s "${THEME_NAME}" --create -t string 2>/dev/null
-xfconf-query -c xsettings -p /Net/IconThemeName -s "${ICON_NAME}" --create -t string 2>/dev/null
-xfconf-query -c xsettings -p /Net/CursorThemeName -s "Adwaita" --create -t string 2>/dev/null
-xfconf-query -c xsettings -p /Gtk/DecorationLayout -s "close,minimize,maximize:" --create -t string 2>/dev/null
+    cat > "$CONF_DIR/xfce4-power-manager.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-power-manager" version="1.0">
+  <property name="xfce4-power-manager" type="empty">
+    <property name="dpms-enabled" type="bool" value="false"/>
+    <property name="presentation-mode" type="bool" value="true"/>
+  </property>
+</channel>
+EOF
 
-# Window Manager Theme
-xfconf-query -c xfwm4 -p /general/theme -s "${THEME_NAME}" --create -t string 2>/dev/null
-xfconf-query -c xfwm4 -p /general/title_alignment -s "center" --create -t string 2>/dev/null
-xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" --create -t string 2>/dev/null
+    cat > "$CONF_DIR/xfce4-session.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-session" version="1.0">
+  <property name="general" type="empty">
+    <property name="SaveOnExit" type="bool" value="false"/>
+  </property>
+</channel>
+EOF
 
-# Panel config remains default XFCE
-
-
-
-# Desktop Icons
-xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-filesystem -s false --create -t bool 2>/dev/null
-xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-home -s true --create -t bool 2>/dev/null
-xfconf-query -c xfce4-desktop -p /desktop-icons/file-icons/show-trash -s true --create -t bool 2>/dev/null
-
-# Power manager
-xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-enabled -s false --create -t bool 2>/dev/null
-xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/presentation-mode -s true --create -t bool 2>/dev/null
-
-# Session - disable save on exit
-xfconf-query -c xfce4-session -p /general/SaveOnExit -s false --create -t bool 2>/dev/null
-
-
-THEMEAPPLYEOF
-    chmod +x ~/dexlinux-apply-theme.sh
-    draw_line "${GREEN}✓${NC} Theme applicator script created"
-
-    # Autostart entry so theme is reapplied on each boot
-    mkdir -p ~/.config/autostart
-    cat > ~/.config/autostart/dexlinux-theme.desktop << 'AUTOEOF'
-[Desktop Entry]
-Type=Application
-Name=DexLinux Theme
-Exec=bash /data/data/com.termux/files/home/dexlinux-apply-theme.sh
-Hidden=false
-NoDisplay=true
-X-XFCE-Autostart-Override=true
-AUTOEOF
+    rm -f ~/dexlinux-apply-theme.sh ~/.config/autostart/dexlinux-theme.desktop 2>/dev/null
+    draw_line "${GREEN}✓${NC} Theme configuration integrated natively"
 
     draw_bottom
 }
