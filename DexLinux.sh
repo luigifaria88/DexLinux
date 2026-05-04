@@ -441,7 +441,7 @@ step_repos() {
     install_pkg "sassc" "Sass Compiler"
     install_pkg "tar" "Tar Utility"
     install_pkg "file" "File Utility"
-    install_pkg "glib-bin" "GLib Binaries"
+    install_pkg "glib" "GLib Binaries"
     install_pkg "bc" "Calculator"
     draw_bottom
 }
