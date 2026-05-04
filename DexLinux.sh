@@ -540,7 +540,7 @@ step_themes() {
     if git clone --depth 1 https://github.com/vinceliuice/Orchis-theme.git "$T_DIR" > /dev/null 2>&1; then
         cd "$T_DIR"
         find . -type f -name "*.sh" -exec termux-fix-shebang {} \; 2>/dev/null
-        bash install.sh -d ~/.themes -c "$GTK_COLOR" -t dark > /dev/null 2>&1
+        bash install.sh -d /data/data/com.termux/files/usr/share/themes -c "$GTK_COLOR" -t dark > /dev/null 2>&1
         draw_line "${GREEN}✓${NC} Orchis ${GTK_COLOR} installed"
         cd - > /dev/null
     fi
@@ -737,8 +737,8 @@ PROFILEDEX
 
 # Sync themes and icons to global paths so all apps can access them natively
 mkdir -p /root/.config/gtk-3.0 /usr/share/themes /usr/share/icons
-cp -rL /data/data/com.termux/files/home/.themes/* /usr/share/themes/ 2>/dev/null || true
-cp -rL /data/data/com.termux/files/home/.icons/* /usr/share/icons/ 2>/dev/null || true
+cp -rL /data/data/com.termux/files/usr/share/themes/Orchis* /usr/share/themes/ 2>/dev/null || true
+cp -rL /data/data/com.termux/files/usr/share/icons/Papirus* /usr/share/icons/ 2>/dev/null || true
 
 cat > /root/.config/gtk-3.0/settings.ini << GTKEOF
 [Settings]
