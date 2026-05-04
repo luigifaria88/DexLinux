@@ -653,8 +653,12 @@ step_themes() {
 </channel>
 EOF
 
-    # Configure XFCE Panel Layout
-    cat > "$CONF_DIR/xfce4-panel.xml" << EOF
+    # Configure XFCE Panel Layout (Use system default as base to prevent crashes)
+    if [ -f /data/data/com.termux/files/usr/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml ]; then
+        cp /data/data/com.termux/files/usr/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml "$CONF_DIR/xfce4-panel.xml"
+    else
+        # Fallback to creating a minimal valid panel config
+        cat > "$CONF_DIR/xfce4-panel.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
   <property name="configver" type="int" value="2"/>
@@ -666,27 +670,11 @@ EOF
       <property name="position-locked" type="bool" value="true"/>
       <property name="size" type="uint" value="${PANEL_SIZE}"/>
       <property name="autohide-behavior" type="int" value="1"/>
-      <property name="plugin-ids" type="array">
-        <value type="int" value="1"/>
-        <value type="int" value="2"/>
-        <value type="int" value="3"/>
-        <value type="int" value="4"/>
-        <value type="int" value="5"/>
-      </property>
     </property>
-  </property>
-  <property name="plugins" type="empty">
-    <property name="plugin-1" type="string" value="applicationsmenu"/>
-    <property name="plugin-2" type="string" value="tasklist"/>
-    <property name="plugin-3" type="string" value="separator">
-      <property name="expand" type="bool" value="true"/>
-      <property name="style" type="int" value="0"/>
-    </property>
-    <property name="plugin-4" type="string" value="systray"/>
-    <property name="plugin-5" type="string" value="clock"/>
   </property>
 </channel>
 EOF
+    fi
 
     cat > "$CONF_DIR/xfwm4.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -726,7 +714,8 @@ EOF
         WP_PATH="$(find /data/data/com.termux/files/home/Pictures/Wallpapers -type f -name "*.png" -o -name "*.jpg" | head -n 1)"
     fi
     if [[ -z "$WP_PATH" || ! -f "$WP_PATH" ]]; then
-        WP_PATH="/data/data/com.termux/files/usr/share/backgrounds/xfce/xfce-verticals.png"
+        WP_PATH="/data/data/com.termux/files/home/Pictures/Wallpapers/Default.png"
+        wget -qO "$WP_PATH" "https://raw.githubusercontent.com/xfce-mirror/xfdesktop/master/backgrounds/xfce-stripes.png" || true
     fi
 
     cat > "$CONF_DIR/xfce4-desktop.xml" << EOF
@@ -739,6 +728,12 @@ EOF
           <property name="color-style" type="int" value="0"/>
           <property name="image-style" type="int" value="5"/>
           <property name="last-image" type="string" value="${WP_PATH}"/>
+          <property name="rgba1" type="array">
+            <value type="double" value="0.1"/>
+            <value type="double" value="0.1"/>
+            <value type="double" value="0.1"/>
+            <value type="double" value="1.0"/>
+          </property>
         </property>
       </property>
       <property name="monitorVirtual-1" type="empty">
@@ -746,6 +741,12 @@ EOF
           <property name="color-style" type="int" value="0"/>
           <property name="image-style" type="int" value="5"/>
           <property name="last-image" type="string" value="${WP_PATH}"/>
+          <property name="rgba1" type="array">
+            <value type="double" value="0.1"/>
+            <value type="double" value="0.1"/>
+            <value type="double" value="0.1"/>
+            <value type="double" value="1.0"/>
+          </property>
         </property>
       </property>
     </property>
